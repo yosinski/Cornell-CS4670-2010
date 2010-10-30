@@ -1,0 +1,53 @@
+\section{Goals}
+
+The goal of our project is to implement a system with the following
+functionality:
+
+\begin{itemize}
+\item Take a picture via a mobile device.
+\item Detect faces in the acquired image and compute features for
+  these faces.
+\item Upload these features to a server and match them to indexed
+  features of the user's friends' faces.
+\item Extract relevant and interesting data from the matched user's
+  profile on Facebook, Twitter, etc.
+\item Send this information back to the phone for display, either in
+  an overlaid or separate manner.
+\end{itemize}
+
+
+
+\section{Tools}
+
+We plan to use OpenCV, the Facebook API, and as many other toolkits as
+available.  We may use an available implementation of the Viola Jones
+[1] face detector, perhaps the one available at
+\code{http://www.cmucam.org/wiki/viola-jones}.
+
+
+
+\section{Breakdown}
+
+We plan on sharing the work initially, but moving as quickly as
+possible to splittiing up the tasks.  Jason has a bit more experience
+with web developement, and Cooper has done more with OpenCV, so we may
+split the tasks along those lines.
+
+
+
+\section{Special Equiptment}
+
+Our project does not require much special equiptment.  We'll need to
+use the phone for capturing images, as well as a server to store a
+persistent index of facial features.  Any server could be used, but we
+anticipate using a rented EC2 server from Amazon
+(\code{http://aws.amazon.com/}).
+
+
+
+\section{References}
+
+[1] Viola, P. Jones, M.  ``Rapid Object Detection Using a Boosted
+Cascade of Simple Features'', IEEE Computer Society Conference on
+Computer Vision and Pattern Recognition, 2001, VOL 1, pages
+I-511-I-518.
