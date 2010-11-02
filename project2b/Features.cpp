@@ -5,10 +5,12 @@
 #include <opencv/highgui.h>
 #include <opencv/cxcore.h>
 #include "Features.h"
+#include <stdio.h>
 
 // Forward declarations
 void applyHomography ( float   x, float   y, float & xNew, float & yNew, float   h [9] );
 
+#define square(x) ((x)*(x))
 #define bugme BUGME(__FILE__, __LINE__)
 void BUGME(string file, int line) {std::cout << " [" << file << ":" << line << "]" << endl;}
 
@@ -688,12 +690,12 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
       //matches[count].id1 = i1->id;
       if(dists[0] <= dists[1])
         {
-          fm.id2 = indicies[0];
+          fm.id2 = f2[indicies[0]].id;
           fm.score = dists[0]/dists[1];
         }
       else
         {
-          fm.id2 = indicies[1];
+          fm.id2 = f2[indicies[1]].id;
           fm.score = dists[1]/dists[0];
         }
       totalScore += fm.score;
@@ -708,6 +710,8 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
       ++count;
       // @@@ Find out how to query a cv::flann::Index::Index
     }
+
+  printf("totalScore is %f\n", totalScore);
 }
 
 // RANSAC as described in lecture.  The result is a 3x3 homography matrix that
@@ -728,10 +732,77 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
                            )
 {
   // @@@ TODO Project 2b
+
+  int ii, jj, idx[4], tries;
+  std::vector<FeatureMatch> fourMatches;
+  CvMat * hh;
+  CvMat * hBest = NULL;
+  int inlierBest = 0;
+  bugme; 
+  for (ii = 0; ii < numRounds; ++ii) {
+    bugme; 
+    // 1. Pick 4 random matches
+    for (tries = 0; tries < 1000; ++tries) {
+      fourMatches.clear();
+      for (jj = 0; jj < 4; ++jj) {
+        idx[jj] = rand() % matches.size();
+        fourMatches.push_back(matches[idx[jj]]);
+      }
+      if ((matches[idx[0]].id1 != matches[idx[1]].id1) &&
+          (matches[idx[0]].id1 != matches[idx[2]].id1) &&
+          (matches[idx[0]].id1 != matches[idx[3]].id1) &&
+          (matches[idx[1]].id1 != matches[idx[2]].id1) &&
+          (matches[idx[1]].id1 != matches[idx[3]].id1) &&
+          (matches[idx[2]].id1 != matches[idx[3]].id1) &&
+          (matches[idx[0]].id2 != matches[idx[1]].id2) &&
+          (matches[idx[0]].id2 != matches[idx[2]].id2) &&
+          (matches[idx[0]].id2 != matches[idx[3]].id2) &&
+          (matches[idx[1]].id2 != matches[idx[2]].id2) &&
+          (matches[idx[1]].id2 != matches[idx[3]].id2) &&
+          (matches[idx[2]].id2 != matches[idx[3]].id2))
+        break;   // good, matches were unique
+      else
+        printf("Had to try again... this should be rare!\n");
+    }
+    assert (tries != 1000);
+
+    // 2. For this random match, compute the homography
+    hh = computeHomography(f1, f2, fourMatches, hh);
+    //printf("hh is %d\n", hh);
+    //printf("hh->data.fl[0] is %d\n", hh->data.fl[0]);
+
+    // 3. Transform all points via the computed homography and see how
+    // many are inliers
+    float xNew, yNew;
+    int countInliers = 0, dist;
+    for (vector<FeatureMatch>::const_iterator mm = matches.begin (); mm != matches.end (); ++mm) {
+      applyHomography(f1[mm->id1].x, f1[mm->id1].y, xNew, yNew, hh->data.fl);
+      
+      dist = square(xNew-f2[mm->id2].x) + square(yNew-f2[mm->id2].y);
+      
+      //printf("dist %d vs inlierThreshold %d\n", dist, inlierThreshold);
+      if (dist < inlierThreshold)
+        ++countInliers;
+    }
+    
+    if (countInliers > inlierBest) {
+      // new best
+      inlierBest = countInliers;
+      if (hBest)
+        cvReleaseMat(&hBest);
+      hBest = cvCloneMat(hh);
+    } else {
+      // not best, so release this homography matrix
+      cvReleaseMat(&hh);
+    }
+    
+  }
+
+  
   printf("Got to here! \n");
-
-  assert ( 0 ); // Remove when ready
-
+  assert ( hBest );       // make sure we got something
+  
+  return hBest;
 }
 
 // The resulting matrix is a 3x3 homography matrix.  You may find cvSolve
@@ -819,7 +890,7 @@ void applyHomography ( float   x,
                        float   h [9] )
 {
   float d = h[6] * x + h[7] * y + h[8];
-
+  
   xNew = ( h[0] * x + h[1] * y + h[2] ) / d;
   yNew = ( h[3] * x + h[4] * y + h[5] ) / d;
 }
