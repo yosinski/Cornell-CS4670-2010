@@ -34,7 +34,44 @@ IplImage * constructPanorama ( IplImage *     img1,
   assert ( img2->depth == IPL_DEPTH_32F );
   assert ( img2->nChannels == 3 );
   // @@@ TODO Project 2b
-  assert ( 0 ); // Remove this when ready
+  //assert ( 0 ); // Remove this when ready
+
+  FeatureSet features1;
+  FeatureSet features2;
+
+  computeFeatures(img1, features1, featureType
+#ifdef Q_WS_MAEMO_5
+		                  , thread
+#endif
+		                  );
+
+  computeFeatures(img2, features2, featureType
+#ifdef Q_WS_MAEMO_5
+		                  , thread
+#endif  
+		                  );
+
+  vector<FeatureMatch> matches;
+  float totalScore = 0.0;
+  matchFeatures(features1, features2, matches, totalScore, matchType
+#ifdef Q_WS_MAEMO_5
+		                  , thread
+#endif  
+		                  );
+
+  CvMat* h = ransacHomography(features1, features2, matches, 1000, 10
+#ifdef Q_WS_MAEMO_5
+		                  , thread
+#endif  
+		                  );
+
+  IplImage* result = compositeImages(img1, img2, h
+#ifdef Q_WS_MAEMO_5
+		                  , thread
+#endif  
+		                  );
+
+  return result;
 }
 
 // Applies homography h onto point p and returns the result
@@ -77,6 +114,16 @@ IplImage * compositeImages ( IplImage *     img1,
   assert ( img2->depth == IPL_DEPTH_32F );
   assert ( img2->nChannels == 3 );
 
+  IplImage *alpha1 = cvCreateImage(cvSize(img1->width, img1->height), IPL_DEPTH_32F, 1);
+  IplImage *alpha2 = cvCreateImage(cvSize(img2->width, img2->height), IPL_DEPTH_32F, 1);
+
+  for(int x = 0; x < alpha1->width; x++)
+    for(int y = 0; y < alpha1->height; y++)
+      cvSet2D(alpha1, x, y, cvScalar((min(min(min(x, y), alpha1->width - x), alpha1->height - y))));
+  for(int x = 0; x < alpha2->width; x++)
+    for(int y = 0; y < alpha2->height; y++)
+      cvSet2D(alpha2, x, y, cvScalar((min(min(min(x, y), alpha2->width - x), alpha2->height - y))));
+	      
   // @@@ TODO Project 2b
   assert ( 0 ); // Remove this when ready
   //check transformation boundries
@@ -122,11 +169,17 @@ IplImage * compositeImages ( IplImage *     img1,
     maxy = img1->height;
   
   IplImage* compImg = cvCreateImage(cvSize(maxx + offset.x, maxy + offset.y), IPL_DEPTH_32F, 3);
-  CvRect area = cvRect(offset.x, offset.y, img1->width, img1->height);
+  IplImage* alpha3 =  cvCreateImage(cvSize(maxx + offset.x, maxy + offset.y), IPL_DEPTH_32F, 1);
+  cvSet(compImg, cvScalar(0,0,0));
+  cvSet(alpha3, cvScalar(0));
 
+  CvRect area = cvRect(offset.x, offset.y, img1->width, img1->height);
   //copy img1 into new image
   cvSetImageROI(compImg, area);
+  cvSetImageROI(alpha3, area);
   cvCopyImage(img1, compImg);
+  cvCopyImage(alpha1, alpha3);
+  cvResetImageROI(alpha3);
   cvResetImageROI(compImg);
 
   // [JBY] This might not work, definitely need to add alpha blending / feathering
@@ -136,8 +189,29 @@ IplImage * compositeImages ( IplImage *     img1,
     for(int y = 0; y < img2->height; y++)
     {
       applyHomography(x, y, xp, yp, h->data.fl);
-      cvSet2D(compImg, xp + offset.x, yp + offset.y, cvGet2D(img2, x, y));
+      
+      float alpha = cvGet2D(alpha3, xp+offset.x, yp+offset.y).val[0];
+      if(alpha > 0.0) //apply feathering if overlap occurs
+      {
+	float a2 = cvGet2D(alpha2, x, y).val[0];
+	CvScalar RGB1 = cvGet2D(compImg, xp+offset.x, yp+offset.y);
+	CvScalar RGB2 = cvGet2D(img2, x, y);
+	CvScalar result = cvScalar(((RGB1.val[0] * alpha) + (RGB2.val[0] * a2))/(alpha + a2),
+				   ((RGB1.val[1] * alpha) + (RGB2.val[1] * a2))/(alpha + a2),
+				   ((RGB1.val[2] * alpha) + (RGB2.val[2] * a2))/(alpha + a2));
+        cvSet2D(compImg, xp + offset.x, yp + offset.y, result);
+      }
+      else
+      {
+	cvSet2D(compImg, xp + offset.x, yp + offset.y, cvGet2D(img2, x, y));
+	cvSet2D(alpha3, xp + offset.x, yp + offset.y, cvGet2D(alpha2, x, y));    
+      }
     }
+  
+  //cleanup
+  cvReleaseImage(&alpha1);
+  cvReleaseImage(&alpha2);
+  cvReleaseImage(&alpha3);
 
   //return new image
   return compImg;
