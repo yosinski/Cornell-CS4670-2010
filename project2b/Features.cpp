@@ -33,6 +33,43 @@ IplImage * constructPanorama ( IplImage *     img1,
   assert ( img2->nChannels == 3 );
   // @@@ TODO Project 2b
   assert ( 0 ); // Remove this when ready
+
+  FeatureSet features1;
+  FeatureSet features2;
+
+  computeFeatures(img1, features1, featureType
+#ifdef Q_WS_MAEMO_5
+		                  , thread
+#endif
+		                  );
+
+  computeFeatures(img2, features2, featureType
+#ifdef Q_WS_MAEMO_5
+		                  , thread
+#endif  
+		                  );
+
+  vector<FeatureMatch> matches;
+  float totalScore = 0.0;
+  matchFeatures(features1, features2, matches, totalScore, matchType
+#ifdef Q_WS_MAEMO_5
+		                  , thread
+#endif  
+		                  );
+
+  CvMat* h = ransacHomography(features1, features2, matches, 1000, 10
+#ifdef Q_WS_MAEMO_5
+		                  , thread
+#endif  
+		                  );
+
+  IplImage* result = compositeImages(img1, img2, h
+#ifdef Q_WS_MAEMO_5
+		                  , thread
+#endif  
+		                  );
+
+  return result;
 }
 
 // Applies homography h onto point p and returns the result
