@@ -9,6 +9,20 @@
 
 // Forward declarations
 void applyHomography ( float   x, float   y, float & xNew, float & yNew, float   h [9] );
+void imageInfo (IplImage *);
+void saveImage (char *, int, char *, IplImage *);
+
+#define DEBUG
+#ifdef DEBUG
+#define ImageInfo(x)                                \
+    cout << "\n" << __FILE__ << ":" << __LINE__     \
+         << " imageInfo(" << #x << ")" << endl;     \
+    imageInfo(x);                                   \
+    saveImage(__FILE__, __LINE__, #x, x);
+#else
+#define ImageInfo(x)
+#endif
+
 
 #define square(x) ((x)*(x))
 #define bugme BUGME(__FILE__, __LINE__)
@@ -153,95 +167,168 @@ IplImage * compositeImages ( IplImage *     img1,
   IplImage *alpha1 = cvCreateImage(cvSize(img1->width, img1->height), IPL_DEPTH_32F, 1);
   IplImage *alpha2 = cvCreateImage(cvSize(img2->width, img2->height), IPL_DEPTH_32F, 1);
 
-  for(int x = 0; x < alpha1->width; x++)
-    for(int y = 0; y < alpha1->height; y++)
-      cvSet2D(alpha1, y, x, cvScalar((min(min(min(x, y), alpha1->width - x), alpha1->height - y))));
-  for(int x = 0; x < alpha2->width; x++)
-    for(int y = 0; y < alpha2->height; y++)
-      cvSet2D(alpha2, y, x, cvScalar((min(min(min(x, y), alpha2->width - x), alpha2->height - y))));
+  for(int jj = 0; jj < alpha1->width; jj++)
+    for(int ii = 0; ii < alpha1->height; ii++)
+      cvSet2D(alpha1, ii, jj, cvScalar((min(min(min(ii, jj), alpha1->width - jj), alpha1->height - ii)) * .003));
+  ImageInfo(alpha1);
+  for(int jj = 0; jj < alpha2->width; jj++)
+    for(int ii = 0; ii < alpha2->height; ii++)
+      cvSet2D(alpha2, ii, jj, cvScalar((min(min(min(ii, jj), alpha2->width - jj), alpha2->height - ii)) * .003));
+  //for(int x = 0; x < alpha2->width; x++)
+  //  for(int y = 0; y < alpha2->height; y++)
+  //    cvSet2D(alpha2, y, x, cvScalar((min(min(min(x, y), alpha2->width - x), alpha2->height - y))));
 	      
   // @@@ TODO Project 2b
   //assert ( 0 ); // Remove this when ready
   //check transformation boundries
-  CvPoint2D32f foffset = cvPoint2D32f(0.0, 0.0);
-  CvPoint offset = cvPoint(0, 0);
+  //CvPoint2D32f foffset = cvPoint2D32f(0.0, 0.0);
+  //CvPoint offset = cvPoint(0, 0);
   //allocate image based on boundries
-  float minx = 0;
-  float maxx = 0;
-  float miny = 0;
-  float maxy = 0;
-  float xp, yp;
-  CvPoint2D32f test = cvPoint2D32f(0.0, 0.0);
-  applyHomography(0.0, 0.0, xp, yp, (h->data.fl));
-  test.x = xp; test.y = yp;
-  minx = test.x < minx ? test.x : minx;
-  maxx = test.x > maxx ? test.x : maxx;
-  miny = test.y < miny ? test.y : miny;
-  maxy = test.y > maxy ? test.y : maxy;
-  applyHomography(0, img2->height-1, xp, yp, h->data.fl);
-  test.x = xp; test.y = yp;
-  minx = test.x < minx ? test.x : minx;
-  maxx = test.x > maxx ? test.x : maxx;
-  miny = test.y < miny ? test.y : miny;
-  maxy = test.y > maxy ? test.y : maxy;
-  applyHomography(img2->width-1, 0, xp, yp, h->data.fl);
-  test.x = xp; test.y = yp;
-  minx = test.x < minx ? test.x : minx;
-  maxx = test.x > maxx ? test.x : maxx;
-  miny = test.y < miny ? test.y : miny;
-  maxy = test.y > maxy ? test.y : maxy;
-  applyHomography(img2->width-1, img2->height-1, xp, yp, h->data.fl);
-  test.x = xp; test.y = yp;
-  minx = test.x < minx ? test.x : minx;
-  maxx = test.x > maxx ? test.x : maxx;
-  miny = test.y < miny ? test.y : miny;
-  maxy = test.y > maxy ? test.y : maxy;
-  if(minx < 0)
-    foffset.x += fabs(minx-1);
-  if(miny < 0)
-    foffset.y += fabs(miny-1);
-  if(maxx < img1->width)
-    maxx = img1->width;
-  if(maxy < img1->height)
-    maxy = img1->height;
+  float mini = 0;
+  float maxi = img1->height;
+  float minj = 0;
+  float maxj = img1->width;
+  float ip, jp;
+  //float offseti, offsetj;
+  float origini, originj;
+  //CvPoint2D32f test = cvPoint2D32f(0.0, 0.0);
+
+  applyHomography(0.0, 0.0, ip, jp, h->data.fl);
+  mini = min(mini, ip);   maxi = max(maxi, ip);
+  minj = min(minj, jp);   maxj = max(maxj, jp);
+
+  applyHomography(0.0, img2->width-1, ip, jp, h->data.fl);
+  mini = min(mini, ip);   maxi = max(maxi, ip);
+  minj = min(minj, jp);   maxj = max(maxj, jp);
+
+  applyHomography(img2->height-1, 0.0, ip, jp, h->data.fl);
+  mini = min(mini, ip);   maxi = max(maxi, ip);
+  minj = min(minj, jp);   maxj = max(maxj, jp);
+
+  applyHomography(img2->height-1, img2->width-1, ip, jp, h->data.fl);
+  mini = min(mini, ip);   maxi = max(maxi, ip);
+  minj = min(minj, jp);   maxj = max(maxj, jp);
+
+  //test.x = xp; test.y = yp;
+  //minx = test.x < minx ? test.x : minx;
+  //maxx = test.x > maxx ? test.x : maxx;
+  //miny = test.y < miny ? test.y : miny;
+  //maxy = test.y > maxy ? test.y : maxy;
+
+  // applyHomography(0, img2->height-1, xp, yp, h->data.fl);
+  // test.x = xp; test.y = yp;
+  // minx = test.x < minx ? test.x : minx;
+  // maxx = test.x > maxx ? test.x : maxx;
+  // miny = test.y < miny ? test.y : miny;
+  // maxy = test.y > maxy ? test.y : maxy;
+  // applyHomography(img2->width-1, 0, xp, yp, h->data.fl);
+  // test.x = xp; test.y = yp;
+  // minx = test.x < minx ? test.x : minx;
+  // maxx = test.x > maxx ? test.x : maxx;
+  // miny = test.y < miny ? test.y : miny;
+  // maxy = test.y > maxy ? test.y : maxy;
+  // applyHomography(img2->width-1, img2->height-1, xp, yp, h->data.fl);
+  // test.x = xp; test.y = yp;
+  // minx = test.x < minx ? test.x : minx;
+  // maxx = test.x > maxx ? test.x : maxx;
+  // miny = test.y < miny ? test.y : miny;
+  // maxy = test.y > maxy ? test.y : maxy;
+  origini = mini;
+  originj = minj;
+  // if(minx < 0)
+  //   foffset.x += fabs(minx-1);
+  // if(miny < 0)
+  //   foffset.y += fabs(miny-1);
+  // if(maxx < img1->width)
+  //   maxx = img1->width;
+  // if(maxy < img1->height)
+  //   maxy = img1->height;
   
-  IplImage* compImg = cvCreateImage(cvSize(ceil(maxx + foffset.x)+10, ceil(maxy + foffset.y)+10), IPL_DEPTH_32F, 3);
-  IplImage* alpha3 =  cvCreateImage(cvSize(ceil(maxx + foffset.x)+10, ceil(maxy + foffset.y)+10), IPL_DEPTH_32F, 1);
+  // IplImage* compImg = cvCreateImage(cvSize(ceil(maxx + foffset.x)+10, ceil(maxy + foffset.y)+10), IPL_DEPTH_32F, 3);
+  // IplImage* alpha3 =  cvCreateImage(cvSize(ceil(maxx + foffset.x)+10, ceil(maxy + foffset.y)+10), IPL_DEPTH_32F, 1);
+  IplImage* compImg = cvCreateImage(cvSize(ceil(maxj) - floor(minj), ceil(maxi) - floor(mini)), IPL_DEPTH_32F, 3);
+  IplImage* alpha3 =  cvCreateImage(cvSize(ceil(maxj) - floor(minj), ceil(maxi) - floor(mini)), IPL_DEPTH_32F, 1);
   cvSet(compImg, cvScalar(0,0,0));
   cvSet(alpha3, cvScalar(0));
 
-  // copy to int version
-  offset.x = foffset.x + 5;
-  offset.y = foffset.y + 5;
+  // // copy to int version
+  // offset.x = foffset.x + 5;
+  // offset.y = foffset.y + 5;
 
-  CvRect area = cvRect(offset.x, offset.y, img1->width, img1->height);
+  //CvRect area = cvRect(offset.x, offset.y, img1->width, img1->height);
+  CvRect area = cvRect(0-originj, 0-origini, img1->width, img1->height);
   //copy img1 into new image
   cvSetImageROI(compImg, area);
   cvSetImageROI(alpha3, area);
   cvCopyImage(img1, compImg);
   cvCopyImage(alpha1, alpha3);
-  cvResetImageROI(alpha3);
   cvResetImageROI(compImg);
+  cvResetImageROI(alpha3);
 
-  // [JBY] This might not work, definitely need to add alpha blending / feathering
+  ImageInfo(compImg);
+  ImageInfo(alpha3);
+
+  // //transform img2 into new image
+  // for(int jj = 0; jj < img2->width; jj++)
+  //   for(int ii = 0; ii < img2->height; ii++)
+  //   {
+  //     applyHomography(ii, jj, ip, jp, h->data.fl);
+      
+  //     //float alpha = cvGet2D(alpha3, yp+offset.y, xp+offset.x).val[0];
+  //     //float alpha = safeVal(alpha3, yp+offset.y, xp+offset.x).val[0];
+  //     float alpha = cvGet2D(alpha3, safeVal(alpha3, yp+offseti, xp+offsetj).val[0];
+  //     if(alpha > 0.0) //apply feathering if overlap occurs
+  //     {
+  //       float a2 = cvGet2D(alpha2, y, x).val[0];
+  //       CvScalar RGB1 = cvGet2D(compImg, yp+offseti, xp+offsetj);
+  //       CvScalar RGB2 = cvGet2D(img2, y, x);
+  //       CvScalar result = cvScalar(((RGB1.val[0] * alpha) + (RGB2.val[0] * a2))/(alpha + a2),
+  //                                  ((RGB1.val[1] * alpha) + (RGB2.val[1] * a2))/(alpha + a2),
+  //                                  ((RGB1.val[2] * alpha) + (RGB2.val[2] * a2))/(alpha + a2));
+  //       cvSet2D(compImg, yp + offseti, xp + offsetj, result);
+  //     }
+  //     else
+  //     {
+  //       //cvSet2D(compImg, yp + offset.y, xp + offset.x, cvGet2D(img2, y, x));
+  //       //cvSet2D(alpha3, yp + offset.y, xp + offset.x, cvGet2D(alpha2, y, x));
+  //       //cvSet2D(compImg, yp + offset.y, xp + offset.x, safeVal(img2, y, x));
+  //       //cvSet2D(alpha3, yp + offset.y, xp + offset.x, safeVal(alpha2, y, x));    
+  //       //safeSet(compImg, yp + offset.y, xp + offset.x, safeVal(img2, y, x));
+  //       //safeSet(alpha3, yp + offset.y, xp + offset.x, safeVal(alpha2, y, x));    
+  //       safeSet(compImg, yp + offseti, xp + offsetj, safeVal(img2, y, x));
+  //       safeSet(alpha3, yp + offseti, xp + offsetj, safeVal(alpha2, y, x));    
+  //     }
+  //   }
+
+
 
   //transform img2 into new image
-  for(int x = 0; x < img2->width; x++)
-    for(int y = 0; y < img2->height; y++)
+  for(int jj = 0; jj < compImg->width; jj++)
+    for(int ii = 0; ii < compImg->height; ii++)
     {
-      applyHomography(x, y, xp, yp, h->data.fl);
+      // [JBY] This might need to be the inverse homography
+      applyHomography(ii, jj, ip, jp, h->data.fl);
       
       //float alpha = cvGet2D(alpha3, yp+offset.y, xp+offset.x).val[0];
-      float alpha = safeVal(alpha3, yp+offset.y, xp+offset.x).val[0];
+      //float alpha = safeVal(alpha3, yp+offset.y, xp+offset.x).val[0];
+      //float alpha = cvGet2D(alpha3, safeVal(alpha3, yp+offseti, xp+offsetj).val[0];
+      float alpha = cvGet2D(alpha3, ii, jj).val[0];
       if(alpha > 0.0) //apply feathering if overlap occurs
       {
-	float a2 = cvGet2D(alpha2, y, x).val[0];
-	CvScalar RGB1 = cvGet2D(compImg, yp+offset.y, xp+offset.x);
-	CvScalar RGB2 = cvGet2D(img2, y, x);
-	CvScalar result = cvScalar(((RGB1.val[0] * alpha) + (RGB2.val[0] * a2))/(alpha + a2),
-				   ((RGB1.val[1] * alpha) + (RGB2.val[1] * a2))/(alpha + a2),
-				   ((RGB1.val[2] * alpha) + (RGB2.val[2] * a2))/(alpha + a2));
-        cvSet2D(compImg, yp + offset.y, xp + offset.x, result);
+        // float a2 = cvGet2D(alpha2, y, x).val[0];
+        // CvScalar RGB1 = cvGet2D(compImg, yp+offseti, xp+offsetj);
+        // CvScalar RGB2 = cvGet2D(img2, y, x);
+        // CvScalar result = cvScalar(((RGB1.val[0] * alpha) + (RGB2.val[0] * a2))/(alpha + a2),
+        //                            ((RGB1.val[1] * alpha) + (RGB2.val[1] * a2))/(alpha + a2),
+        //                            ((RGB1.val[2] * alpha) + (RGB2.val[2] * a2))/(alpha + a2));
+        // cvSet2D(compImg, yp + offseti, xp + offsetj, result);
+        float a2 = cvGet2D(alpha2, ip, jp).val[0];
+        CvScalar RGB1 = cvGet2D(compImg, ii, jj);
+        CvScalar RGB2 = cvGet2D(img2, ip, jp);
+        CvScalar result = cvScalar(((RGB1.val[0] * alpha) + (RGB2.val[0] * a2))/(alpha + a2),
+                                   ((RGB1.val[1] * alpha) + (RGB2.val[1] * a2))/(alpha + a2),
+                                   ((RGB1.val[2] * alpha) + (RGB2.val[2] * a2))/(alpha + a2));
+        cvSet2D(compImg, yp + offseti, xp + offsetj, result);
       }
       else
       {
@@ -249,10 +336,17 @@ IplImage * compositeImages ( IplImage *     img1,
         //cvSet2D(alpha3, yp + offset.y, xp + offset.x, cvGet2D(alpha2, y, x));
         //cvSet2D(compImg, yp + offset.y, xp + offset.x, safeVal(img2, y, x));
         //cvSet2D(alpha3, yp + offset.y, xp + offset.x, safeVal(alpha2, y, x));    
-        safeSet(compImg, yp + offset.y, xp + offset.x, safeVal(img2, y, x));
-        safeSet(alpha3, yp + offset.y, xp + offset.x, safeVal(alpha2, y, x));    
+        //safeSet(compImg, yp + offset.y, xp + offset.x, safeVal(img2, y, x));
+        //safeSet(alpha3, yp + offset.y, xp + offset.x, safeVal(alpha2, y, x));    
+        // safeSet(compImg, yp + offseti, xp + offsetj, safeVal(img2, y, x));
+        // safeSet(alpha3, yp + offseti, xp + offsetj, safeVal(alpha2, y, x));    
+        cvSet2D(compImg, ii, jj, cvGet2D(img2, yp - origini, xp - originj));
+        cvSet2D(alpha3, ii, jj, cvGet2D(alpha2, yp - origini, xp - originj));
       }
     }
+
+
+
   
   //cleanup
   cvReleaseImage(&alpha1);
@@ -1025,4 +1119,58 @@ float computeAUC ( vector<ROCPoint> & results )
     auc = auc + xdiff * results[i - 1].trueRate + xdiff * ydiff / 2;
   }
   return auc;
+}
+
+
+// Print out image information and one corner of image
+void
+imageInfo (IplImage * image)
+{
+    cout << "Image info:" << endl;
+    cout << "    nSize:          " << image->nSize          << endl;
+    cout << "    ID:             " << image->ID             << endl;
+    cout << "    nChannels:      " << image->nChannels      << endl;
+    cout << "    alphaChannel:   " << image->alphaChannel   << endl;
+    cout << "    depth:          " << image->depth          << endl;
+    cout << "    colorModel[4]:  " << image->colorModel[0] << image->colorModel[1]
+         << image->colorModel[2] << image->colorModel[3]  << endl;
+    cout << "    channelSeq[4]:  " << image->channelSeq[0] << image->channelSeq[1]
+         << image->channelSeq[2] << image->channelSeq[3] << endl;
+    cout << "    dataOrder:      " << image->dataOrder      << endl;
+    cout << "    origin:         " << image->origin         << endl;
+    cout << "    align:          " << image->align          << endl;
+    cout << "    width:          " << image->width          << endl;
+    cout << "    height:         " << image->height         << endl;
+    cout << "    imageSize:      " << image->imageSize      << endl;
+    cout << "    widthStep:      " << image->widthStep      << endl;
+    cout << "    BorderMode[4]:  " << image->BorderMode[4]  << endl;
+    cout << "    BorderConst[4]: " << image->BorderConst[4] << endl;
+
+    int ii, jj, cc;
+    int nChannels = image->nChannels;
+    
+    int maxIdx = 8;
+
+    for (ii = 0; ii < min(maxIdx,image->height); ++ii) {
+        for (jj = 0; jj < min(maxIdx,image->width); ++jj) {
+            cout << ii << "," << jj << " " << "(";
+            for (cc = 0; cc < nChannels; ++cc) {
+                printf("%.2f", CV_IMAGE_ELEM(image, float, ii, jj*nChannels+cc));
+            }
+            cout << ") ";
+        }
+        cout << endl;
+    }
+}
+
+void saveImage(char * file, int line, char * name, IplImage * image)
+{
+    char buffer [50];
+    //sprintf (buffer, "%s_%03d_%s.png", file, line, name);
+    sprintf (buffer, "line_%03d_%s.png", line, name);
+
+    IplImage* temp = cvCloneImage(image);
+    cvConvertScale(image, temp, 255, 0);
+    cvSaveImage(buffer, temp);
+    cvReleaseImage(&temp);
 }
