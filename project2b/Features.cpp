@@ -49,7 +49,7 @@ inline void safeSet (IplImage * img, int ii, int jj, CvScalar val)
 }
 
 
-float test[9] = {1.5, 0.0, 0.0,
+float test[9] = {1.0, 0.0, 280.0,
 		0.0, 1.0, 0.0,
 		0.0, 0.0, 1.0};
 
@@ -112,6 +112,12 @@ IplImage * constructPanorama ( IplImage *     img1,
   printf("     %3f should be rightmost, center row\n", cvmGet(h, 1, 2));  
 
   h->data.fl = test;
+
+  data = h->data.fl;
+  printf("Final Final Homography Matrix:\n");
+  printf(" %3f, %3f, %3f\n", data[0], data[1], data[2]);
+  printf(" %3f, %3f, %3f\n", data[3], data[4], data[5]);
+  printf(" %3f, %3f, %3f\n", data[6], data[7], data[8]);
 
   IplImage* result = compositeImages(img1, img2, h
 #ifdef Q_WS_MAEMO_5
@@ -803,6 +809,8 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
     }
   cv::flann::Index::Index flannIndex ( features, cv::flann::KDTreeIndexParams () );
   // End FLANN index population
+
+  float threshold = 0.8;
   
   totalScore = 0;
   int count = 0;
@@ -830,15 +838,18 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
           fm.id2 = f2[indicies[1]].id;
           fm.score = dists[1]/dists[0];
         }
-      totalScore += fm.score;
-    
+      if(fm.score < threshold)
+	{
+	  totalScore += fm.score;
+	  matches.push_back(fm);
+	}
+
 #ifdef Q_WS_MAEMO_5
       if ( thread && count % ( totalCount / 100 ) == 0 )
         {
           thread->emitProgressUpdate ( 100 * count / totalCount );
         }
 #endif
-      matches.push_back(fm);
       ++count;
       // @@@ Find out how to query a cv::flann::Index::Index
     }
