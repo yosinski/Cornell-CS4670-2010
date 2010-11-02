@@ -319,6 +319,7 @@ IplImage * compositeImages ( IplImage *     img1,
   //   }
 
 
+  /*
 
   //transform img2 into new image
   for(int jj = 0; jj < compImg->width; jj++)
@@ -363,7 +364,7 @@ IplImage * compositeImages ( IplImage *     img1,
       }
     }
 
-
+  */
 
   
   //cleanup
@@ -934,7 +935,8 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
         }
       if(fm.score < threshold)
 	{
-	  totalScore += fm.score;
+	  totalScore -= 1;
+	  //totalScore += fm.score;
 	  matches.push_back(fm);
 	}
 
@@ -1005,6 +1007,11 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
 
     // 2. For this random match, compute the homography
     hh = computeHomography(f1, f2, fourMatches, hh);
+    for (vector<FeatureMatch>::const_iterator fm = fourMatches.begin (); fm != fourMatches.end (); ++fm) {
+      printf("Matches considered: (%d,%d) -> (%d,%d) score %f\n",
+             f1[fm->id1].x, f1[fm->id1].y, f1[fm->id2].x, f1[fm->id2].y, fm->score);
+
+    }    
     //printf("hh is %d\n", hh);
     //printf("hh->data.fl[0] is %d\n", hh->data.fl[0]);
 
@@ -1030,6 +1037,7 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
       hBest = cvCloneMat(hh);
       float* data = hBest->data.fl;
       printf("\"Best\" Homography Matrix:\n");
+      printf("matched %d features out of %d\n", countInliers, matches.size());
       printf(" %3f, %3f, %3f\n", data[0], data[1], data[2]);
       printf(" %3f, %3f, %3f\n", data[3], data[4], data[5]);
       printf(" %3f, %3f, %3f\n", data[6], data[7], data[8]);
