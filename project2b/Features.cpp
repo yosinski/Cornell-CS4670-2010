@@ -32,7 +32,7 @@ IplImage * constructPanorama ( IplImage *     img1,
   assert ( img2->depth == IPL_DEPTH_32F );
   assert ( img2->nChannels == 3 );
   // @@@ TODO Project 2b
-  assert ( 0 ); // Remove this when ready
+  //assert ( 0 ); // Remove this when ready
 
   FeatureSet features1;
   FeatureSet features2;
