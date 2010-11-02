@@ -1,0 +1,42 @@
+#! /bin/bash
+
+####################
+# Features:
+#   1 - dummy (not used)
+#   2 - MOPS
+#   3 - SURF
+#
+# Matching:
+#   1 - ssd
+#   2 - ratio
+
+
+function books {
+    echo "books..."
+
+    rm -f 3.db
+    for file in alf.JPG arrested_development.JPG curb_your_enthusiasm.JPG futurama.JPG goes_to_camp.JPG mockingbird.JPG scared_stupid.JPG; do
+        echo "  $file"
+        $f computeFeatures $dat/images/$file $gen/$file.f 3;
+        echo "$dat/images/$file      $gen/$file.f" >> 3.db
+    done
+}
+
+function phone {
+    scp Features *.db $ph:
+    #scp -r $dat/images $ph:data/images
+    #scp -r $gen/ $ph:$gen
+    #ssh $ph "./Features"
+}
+
+mad make || exit 1
+
+mkdir -p generated
+#cd generated
+ph=root@192.168.2.15
+gen=generated
+f=./Features
+dat=data
+
+#books
+phone
