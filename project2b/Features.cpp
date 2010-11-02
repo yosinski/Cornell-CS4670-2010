@@ -125,7 +125,7 @@ IplImage * constructPanorama ( IplImage *     img1,
   printf(" %3f, %3f, %3f\n", data[6], data[7], data[8]);
   printf("     %3f should be rightmost, center row\n", cvmGet(h, 1, 2));  
 
-  h->data.fl = test;
+  //  h->data.fl = test;
 
   data = h->data.fl;
   printf("Final Final Homography Matrix:\n");
@@ -133,7 +133,7 @@ IplImage * constructPanorama ( IplImage *     img1,
   printf(" %3f, %3f, %3f\n", data[3], data[4], data[5]);
   printf(" %3f, %3f, %3f\n", data[6], data[7], data[8]);
 
-  IplImage* result = compositeImages(img1, img2, h
+  IplImage* result = compositeImages(img2, img1, h
 #ifdef Q_WS_MAEMO_5
 		                  , thread
 #endif  
@@ -211,19 +211,19 @@ IplImage * compositeImages ( IplImage *     img1,
   float origini, originj;
   //CvPoint2D32f test = cvPoint2D32f(0.0, 0.0);
 
-  applyHomography(0.0, 0.0, ip, jp, h->data.fl);
+  applyHomography(0.0, 0.0, jp, ip, h->data.fl);
   mini = min(mini, ip);   maxi = max(maxi, ip);
   minj = min(minj, jp);   maxj = max(maxj, jp);
 
-  applyHomography(0.0, img2->width-1, ip, jp, h->data.fl);
+  applyHomography(0.0, img2->width-1, jp, ip, h->data.fl);
   mini = min(mini, ip);   maxi = max(maxi, ip);
   minj = min(minj, jp);   maxj = max(maxj, jp);
 
-  applyHomography(img2->height-1, 0.0, ip, jp, h->data.fl);
+  applyHomography(img2->height-1, 0.0, jp, ip, h->data.fl);
   mini = min(mini, ip);   maxi = max(maxi, ip);
   minj = min(minj, jp);   maxj = max(maxj, jp);
 
-  applyHomography(img2->height-1, img2->width-1, ip, jp, h->data.fl);
+  applyHomography(img2->height-1, img2->width-1, jp, ip, h->data.fl);
   mini = min(mini, ip);   maxi = max(maxi, ip);
   minj = min(minj, jp);   maxj = max(maxj, jp);
 
@@ -286,37 +286,37 @@ IplImage * compositeImages ( IplImage *     img1,
   ImageInfo(compImg);
   ImageInfo(alpha3);
 
-  // //transform img2 into new image
-  // for(int jj = 0; jj < img2->width; jj++)
-  //   for(int ii = 0; ii < img2->height; ii++)
-  //   {
-  //     applyHomography(ii, jj, ip, jp, h->data.fl);
+  //transform img2 into new image
+  for(int jj = 0; jj < img2->width; jj++)
+    for(int ii = 0; ii < img2->height; ii++)
+    {
+      applyHomography(jj, ii, jp, ip, h->data.fl);
       
-  //     //float alpha = cvGet2D(alpha3, yp+offset.y, xp+offset.x).val[0];
-  //     //float alpha = safeVal(alpha3, yp+offset.y, xp+offset.x).val[0];
-  //     float alpha = cvGet2D(alpha3, safeVal(alpha3, yp+offseti, xp+offsetj).val[0];
-  //     if(alpha > 0.0) //apply feathering if overlap occurs
-  //     {
-  //       float a2 = cvGet2D(alpha2, y, x).val[0];
-  //       CvScalar RGB1 = cvGet2D(compImg, yp+offseti, xp+offsetj);
-  //       CvScalar RGB2 = cvGet2D(img2, y, x);
-  //       CvScalar result = cvScalar(((RGB1.val[0] * alpha) + (RGB2.val[0] * a2))/(alpha + a2),
-  //                                  ((RGB1.val[1] * alpha) + (RGB2.val[1] * a2))/(alpha + a2),
-  //                                  ((RGB1.val[2] * alpha) + (RGB2.val[2] * a2))/(alpha + a2));
-  //       cvSet2D(compImg, yp + offseti, xp + offsetj, result);
-  //     }
-  //     else
-  //     {
-  //       //cvSet2D(compImg, yp + offset.y, xp + offset.x, cvGet2D(img2, y, x));
-  //       //cvSet2D(alpha3, yp + offset.y, xp + offset.x, cvGet2D(alpha2, y, x));
-  //       //cvSet2D(compImg, yp + offset.y, xp + offset.x, safeVal(img2, y, x));
-  //       //cvSet2D(alpha3, yp + offset.y, xp + offset.x, safeVal(alpha2, y, x));    
-  //       //safeSet(compImg, yp + offset.y, xp + offset.x, safeVal(img2, y, x));
-  //       //safeSet(alpha3, yp + offset.y, xp + offset.x, safeVal(alpha2, y, x));    
-  //       safeSet(compImg, yp + offseti, xp + offsetj, safeVal(img2, y, x));
-  //       safeSet(alpha3, yp + offseti, xp + offsetj, safeVal(alpha2, y, x));    
-  //     }
-  //   }
+      //float alpha = cvGet2D(alpha3, yp+offset.y, xp+offset.x).val[0];
+      //float alpha = safeVal(alpha3, yp+offset.y, xp+offset.x).val[0];
+      float alpha = safeVal(alpha3, ip-origini, jp-originj).val[0];
+      if(alpha > 0.0) //apply feathering if overlap occurs
+      {
+        float a2 = cvGet2D(alpha2, ii, jj).val[0];
+        CvScalar RGB1 = cvGet2D(compImg, ip-origini, jp-originj);
+        CvScalar RGB2 = cvGet2D(img2, ii, jj);
+        CvScalar result = cvScalar(((RGB1.val[0] * alpha) + (RGB2.val[0] * a2))/(alpha + a2),
+                                   ((RGB1.val[1] * alpha) + (RGB2.val[1] * a2))/(alpha + a2),
+                                   ((RGB1.val[2] * alpha) + (RGB2.val[2] * a2))/(alpha + a2));
+        cvSet2D(compImg, ip-origini, jp-originj, result);
+      }
+      else
+      {
+        //cvSet2D(compImg, yp + offset.y, xp + offset.x, cvGet2D(img2, y, x));
+        //cvSet2D(alpha3, yp + offset.y, xp + offset.x, cvGet2D(alpha2, y, x));
+        //cvSet2D(compImg, yp + offset.y, xp + offset.x, safeVal(img2, y, x));
+        //cvSet2D(alpha3, yp + offset.y, xp + offset.x, safeVal(alpha2, y, x));    
+        //safeSet(compImg, yp + offset.y, xp + offset.x, safeVal(img2, y, x));
+        //safeSet(alpha3, yp + offset.y, xp + offset.x, safeVal(alpha2, y, x));    
+        safeSet(compImg, ip-origini, jp-originj, safeVal(img2, ii, jj));
+        safeSet(alpha3, ip-origini, jp-originj, safeVal(alpha2, ii, jj));    
+      }
+    }
 
 
   /*
@@ -905,7 +905,7 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
   cv::flann::Index::Index flannIndex ( features, cv::flann::KDTreeIndexParams () );
   // End FLANN index population
 
-  float threshold = 0.8;
+  float threshold = 0.5;
   
   totalScore = 0;
   int count = 0;
@@ -915,9 +915,10 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
   vector<float> dists(2);
   vector<int> indicies(2);
   int i = 0;
+  cv::flann::SearchParams params;
   for ( FeatureSet::const_iterator i1 = f1.begin (); i1 != f1.end (); ++i1 )
     {
-      flannIndex.knnSearch(i1->data, indicies, dists, 2, NULL);
+      flannIndex.knnSearch(i1->data, indicies, dists, 2, params);
 
       FeatureMatch fm;
       fm.id1 = i1->id;
@@ -925,6 +926,7 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
       //matches[count].id1 = i1->id;
       if(dists[0] <= dists[1])
         {
+	  printf("dist: %f\n", dists[0]);
           fm.id2 = f2[indicies[0]].id;
           fm.score = dists[0]/dists[1];
         }
@@ -935,6 +937,7 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
         }
       if(fm.score < threshold)
 	{
+    	  printf("Matched (%d, %d) => (%d, %d) with score %f\n", f2[indicies[0]].x, f2[indicies[0]].y, i1->x, i1->y, fm.score);
 	  totalScore -= 1;
 	  //totalScore += fm.score;
 	  matches.push_back(fm);
@@ -1009,7 +1012,7 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
     hh = computeHomography(f1, f2, fourMatches, hh);
     for (vector<FeatureMatch>::const_iterator fm = fourMatches.begin (); fm != fourMatches.end (); ++fm) {
       printf("Matches considered: (%d,%d) -> (%d,%d) score %f\n",
-             f1[fm->id1].x, f1[fm->id1].y, f1[fm->id2].x, f1[fm->id2].y, fm->score);
+             f1[fm->id1-1].x, f1[fm->id1-1].y, f1[fm->id2-1].x, f1[fm->id2-1].y, fm->score);
 
     }    
     //printf("hh is %d\n", hh);
@@ -1020,9 +1023,9 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
     float xNew, yNew;
     int countInliers = 0, dist;
     for (vector<FeatureMatch>::const_iterator mm = matches.begin (); mm != matches.end (); ++mm) {
-      applyHomography(f1[mm->id1].x, f1[mm->id1].y, xNew, yNew, hh->data.fl);
+      applyHomography(f1[mm->id1-1].x, f1[mm->id1-1].y, xNew, yNew, hh->data.fl);
       
-      dist = square(xNew-f2[mm->id2].x) + square(yNew-f2[mm->id2].y);
+      dist = square(xNew-f2[mm->id2-1].x) + square(yNew-f2[mm->id2-1].y);
       
       //printf("dist %d vs inlierThreshold %d\n", dist, inlierThreshold);
       if (dist < inlierThreshold*inlierThreshold)
@@ -1077,10 +1080,10 @@ CvMat * computeHomography ( const std::vector<Feature> &      f1,
   int count = 0;
   for ( vector<FeatureMatch>::const_iterator i1 = matches.begin (); i1 != matches.end (); ++i1 )
   {
-    float x = f1[i1->id1].x; //original point in first image
-    float y = f1[i1->id1].y;
-    float xp = f2[i1->id2].x; //target in second image
-    float yp = f2[i1->id2].y;
+    float x = f1[i1->id1-1].x; //original point in first image
+    float y = f1[i1->id1-1].y;
+    float xp = f2[i1->id2-1].x; //target in second image
+    float yp = f2[i1->id2-1].y;
     cvmSet(A, count, 0, x);
     cvmSet(A, count, 1, y);
     cvmSet(A, count, 2, 1);
