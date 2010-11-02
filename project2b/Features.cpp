@@ -14,6 +14,42 @@ void applyHomography ( float   x, float   y, float & xNew, float & yNew, float  
 #define bugme BUGME(__FILE__, __LINE__)
 void BUGME(string file, int line) {std::cout << " [" << file << ":" << line << "]" << endl;}
 
+// get value at (possibly exterior) coordinates
+inline CvScalar safeVal (const IplImage * img, int ii, int jj)
+{
+  //assert ( img->depth == IPL_DEPTH_32F );
+  //assert ( img->nChannels == 1 );
+
+  // compute coordinates as if image was reflected across all borders.
+  // Edge row is not reflected.
+  ii = (ii >= 0     ? ii : -ii);
+  ii = (ii < img->height ? ii : 2*img->height-ii-2);
+  jj = (jj >= 0     ? jj : -jj);
+  jj = (jj < img->width  ? jj : 2*img->width -jj-2);
+
+  //return CV_IMAGE_ELEM(img, float, ii, jj);
+  return cvGet2D(img, ii, jj);
+}
+
+// set value at (possibly exterior) coordinates
+inline void safeSet (IplImage * img, int ii, int jj, CvScalar val)
+{
+  //assert ( img->depth == IPL_DEPTH_32F );
+  //assert ( img->nChannels == 1 );
+
+  // compute coordinates as if image was reflected across all borders.
+  // Edge row is not reflected.
+  ii = (ii >= 0     ? ii : -ii);
+  ii = (ii < img->height ? ii : 2*img->height-ii-2);
+  jj = (jj >= 0     ? jj : -jj);
+  jj = (jj < img->width  ? jj : 2*img->width -jj-2);
+
+  //return CV_IMAGE_ELEM(img, float, ii, jj);
+  cvSet2D(img, ii, jj, val);
+}
+
+
+
 // This is the entry point for all panorama generation.  The output image will
 // be allocated by your code and in particular should be allocated from a call
 // to compositeImages.  This function will also depend on ransacHomography
@@ -119,20 +155,21 @@ IplImage * compositeImages ( IplImage *     img1,
 
   for(int x = 0; x < alpha1->width; x++)
     for(int y = 0; y < alpha1->height; y++)
-      cvSet2D(alpha1, x, y, cvScalar((min(min(min(x, y), alpha1->width - x), alpha1->height - y))));
+      cvSet2D(alpha1, y, x, cvScalar((min(min(min(x, y), alpha1->width - x), alpha1->height - y))));
   for(int x = 0; x < alpha2->width; x++)
     for(int y = 0; y < alpha2->height; y++)
-      cvSet2D(alpha2, x, y, cvScalar((min(min(min(x, y), alpha2->width - x), alpha2->height - y))));
+      cvSet2D(alpha2, y, x, cvScalar((min(min(min(x, y), alpha2->width - x), alpha2->height - y))));
 	      
   // @@@ TODO Project 2b
-  assert ( 0 ); // Remove this when ready
+  //assert ( 0 ); // Remove this when ready
   //check transformation boundries
+  CvPoint2D32f foffset = cvPoint2D32f(0.0, 0.0);
   CvPoint offset = cvPoint(0, 0);
   //allocate image based on boundries
-  int minx = 0;
-  int maxx = 0;
-  int miny = 0;
-  int maxy = 0;
+  float minx = 0;
+  float maxx = 0;
+  float miny = 0;
+  float maxy = 0;
   float xp, yp;
   CvPoint2D32f test = cvPoint2D32f(0.0, 0.0);
   applyHomography(0.0, 0.0, xp, yp, (h->data.fl));
@@ -160,18 +197,22 @@ IplImage * compositeImages ( IplImage *     img1,
   miny = test.y < miny ? test.y : miny;
   maxy = test.y > maxy ? test.y : maxy;
   if(minx < 0)
-    offset.x += abs(minx);
+    foffset.x += fabs(minx-1);
   if(miny < 0)
-    offset.y += abs(miny);
+    foffset.y += fabs(miny-1);
   if(maxx < img1->width)
     maxx = img1->width;
   if(maxy < img1->height)
     maxy = img1->height;
   
-  IplImage* compImg = cvCreateImage(cvSize(maxx + offset.x, maxy + offset.y), IPL_DEPTH_32F, 3);
-  IplImage* alpha3 =  cvCreateImage(cvSize(maxx + offset.x, maxy + offset.y), IPL_DEPTH_32F, 1);
+  IplImage* compImg = cvCreateImage(cvSize(ceil(maxx + foffset.x)+10, ceil(maxy + foffset.y)+10), IPL_DEPTH_32F, 3);
+  IplImage* alpha3 =  cvCreateImage(cvSize(ceil(maxx + foffset.x)+10, ceil(maxy + foffset.y)+10), IPL_DEPTH_32F, 1);
   cvSet(compImg, cvScalar(0,0,0));
   cvSet(alpha3, cvScalar(0));
+
+  // copy to int version
+  offset.x = foffset.x + 5;
+  offset.y = foffset.y + 5;
 
   CvRect area = cvRect(offset.x, offset.y, img1->width, img1->height);
   //copy img1 into new image
@@ -190,21 +231,26 @@ IplImage * compositeImages ( IplImage *     img1,
     {
       applyHomography(x, y, xp, yp, h->data.fl);
       
-      float alpha = cvGet2D(alpha3, xp+offset.x, yp+offset.y).val[0];
+      //float alpha = cvGet2D(alpha3, yp+offset.y, xp+offset.x).val[0];
+      float alpha = safeVal(alpha3, yp+offset.y, xp+offset.x).val[0];
       if(alpha > 0.0) //apply feathering if overlap occurs
       {
-	float a2 = cvGet2D(alpha2, x, y).val[0];
-	CvScalar RGB1 = cvGet2D(compImg, xp+offset.x, yp+offset.y);
-	CvScalar RGB2 = cvGet2D(img2, x, y);
+	float a2 = cvGet2D(alpha2, y, x).val[0];
+	CvScalar RGB1 = cvGet2D(compImg, yp+offset.y, xp+offset.x);
+	CvScalar RGB2 = cvGet2D(img2, y, x);
 	CvScalar result = cvScalar(((RGB1.val[0] * alpha) + (RGB2.val[0] * a2))/(alpha + a2),
 				   ((RGB1.val[1] * alpha) + (RGB2.val[1] * a2))/(alpha + a2),
 				   ((RGB1.val[2] * alpha) + (RGB2.val[2] * a2))/(alpha + a2));
-        cvSet2D(compImg, xp + offset.x, yp + offset.y, result);
+        cvSet2D(compImg, yp + offset.y, xp + offset.x, result);
       }
       else
       {
-	cvSet2D(compImg, xp + offset.x, yp + offset.y, cvGet2D(img2, x, y));
-	cvSet2D(alpha3, xp + offset.x, yp + offset.y, cvGet2D(alpha2, x, y));    
+        //cvSet2D(compImg, yp + offset.y, xp + offset.x, cvGet2D(img2, y, x));
+        //cvSet2D(alpha3, yp + offset.y, xp + offset.x, cvGet2D(alpha2, y, x));
+        //cvSet2D(compImg, yp + offset.y, xp + offset.x, safeVal(img2, y, x));
+        //cvSet2D(alpha3, yp + offset.y, xp + offset.x, safeVal(alpha2, y, x));    
+        safeSet(compImg, yp + offset.y, xp + offset.x, safeVal(img2, y, x));
+        safeSet(alpha3, yp + offset.y, xp + offset.x, safeVal(alpha2, y, x));    
       }
     }
   
@@ -814,7 +860,6 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
   int inlierBest = 0;
   bugme; 
   for (ii = 0; ii < numRounds; ++ii) {
-    bugme; 
     // 1. Pick 4 random matches
     for (tries = 0; tries < 1000; ++tries) {
       fourMatches.clear();
@@ -872,8 +917,6 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
     
   }
 
-  
-  printf("Got to here! \n");
   assert ( hBest );       // make sure we got something
   
   return hBest;
