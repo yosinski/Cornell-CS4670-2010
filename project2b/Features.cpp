@@ -6,6 +6,10 @@
 #include <opencv/cxcore.h>
 #include "Features.h"
 
+// Forward declarations
+void applyHomography ( float   x, float   y, float & xNew, float & yNew, float   h [9] );
+
+
 // This is the entry point for all panorama generation.  The output image will
 // be allocated by your code and in particular should be allocated from a call
 // to compositeImages.  This function will also depend on ransacHomography
@@ -80,25 +84,25 @@ IplImage * compositeImages ( IplImage *     img1,
   int maxy = 0;
   float xp, yp;
   CvPoint2D32f test = cvPoint2D32f(0.0, 0.0);
-  applyHomography(0.0, 0.0, &xp, &yp, (h->data.fl));
+  applyHomography(0.0, 0.0, xp, yp, (h->data.fl));
   test.x = xp; test.y = yp;
   minx = test.x < minx ? test.x : minx;
   maxx = test.x > maxx ? test.x : maxx;
   miny = test.y < miny ? test.y : miny;
   maxy = test.y > maxy ? test.y : maxy;
-  applyHomography(0, img2->height-1, &xp, &yp, h);
+  applyHomography(0, img2->height-1, xp, yp, h->data.fl);
   test.x = xp; test.y = yp;
   minx = test.x < minx ? test.x : minx;
   maxx = test.x > maxx ? test.x : maxx;
   miny = test.y < miny ? test.y : miny;
   maxy = test.y > maxy ? test.y : maxy;
-  applyHomography(img2->width-1, 0, &xp, &yp, h);
+  applyHomography(img2->width-1, 0, xp, yp, h->data.fl);
   test.x = xp; test.y = yp;
   minx = test.x < minx ? test.x : minx;
   maxx = test.x > maxx ? test.x : maxx;
   miny = test.y < miny ? test.y : miny;
   maxy = test.y > maxy ? test.y : maxy;
-  applyHomography(img2->width-1, img2->height-1, &xp, &yp, h);
+  applyHomography(img2->width-1, img2->height-1, xp, yp, h->data.fl);
   test.x = xp; test.y = yp;
   minx = test.x < minx ? test.x : minx;
   maxx = test.x > maxx ? test.x : maxx;
@@ -121,11 +125,13 @@ IplImage * compositeImages ( IplImage *     img1,
   cvCopyImage(img1, compImg);
   cvResetImageROI(compImg);
 
+  // [JBY] This might not work, definitely need to add alpha blending / feathering
+
   //transform img2 into new image
   for(int x = 0; x < img2->width; x++)
     for(int y = 0; y < img2->height; y++)
     {
-      applyHomography(x, y, &xp, &yp, h);
+      applyHomography(x, y, xp, yp, h->data.fl);
       cvSet2D(compImg, xp + offset.x, yp + offset.y, cvGet2D(img2, x, y));
     }
 
@@ -734,10 +740,12 @@ CvMat * computeHomography ( const std::vector<Feature> &      f1,
   h = cvCreateMat(3, 3, CV_32FC1);
   
   //Construct Matrix A (for At=b)
-  CvMat* A = cvCreateMat(2*(matches.size()), 9, CV_32FC1);
+  //Construct Vector b (for At=b)
+  CvMat* A = cvCreateMat(2*(matches.size()), 8, CV_32FC1);
+  CvMat* b = cvCreateMat(2*(matches.size()), 1, CV_32FC1);
   int count = 0;
   for ( vector<FeatureMatch>::const_iterator i1 = matches.begin (); i1 != matches.end (); ++i1 )
-  { 
+  {
     float x = f1[i1->id1].x; //original point in first image
     float y = f1[i1->id1].y;
     float xp = f2[i1->id2].x; //target in second image
@@ -750,7 +758,7 @@ CvMat * computeHomography ( const std::vector<Feature> &      f1,
     cvmSet(A, count, 5, 0);
     cvmSet(A, count, 6, -(x*xp));
     cvmSet(A, count, 7, -(y*xp));
-    cvmSet(A, count, 8, -xp);
+    cvmSet(b, count, 0, xp);
     count++;
     cvmSet(A, count, 0, 0);
     cvmSet(A, count, 1, 0);
@@ -760,17 +768,16 @@ CvMat * computeHomography ( const std::vector<Feature> &      f1,
     cvmSet(A, count, 5, 1);
     cvmSet(A, count, 6, -(x*yp));
     cvmSet(A, count, 7, -(y*yp));
-    cvmSet(A, count, 8, -yp);
+    cvmSet(b, count, 0, yp);
     count++;
   }
 
-  //Construct Vector b (for At=b)
-  CvMat* b = cvCreateMat(2*(matches.size()), 1, CV_32FC1);
-  for(uint i = 0; i < 2*(matches.size()); i++)
-    cvmSet(b, i, 0, 0); //set all to 0
+  //for(uint i = 0; i < 2*(matches.size()); i++) {
+  //  cvmSet(b, i, 0, 0); //set all to 0
+  //}
 
   //Run Solve:
-  CvMat* x = cvCreateMat(9, 1, CV_32FC1);
+  CvMat* x = cvCreateMat(8, 1, CV_32FC1);
   cvSolve(A, b, x, CV_SVD);
 
   cvmSet(h, 0, 0, cvmGet(x, 0, 0));
@@ -781,7 +788,7 @@ CvMat * computeHomography ( const std::vector<Feature> &      f1,
   cvmSet(h, 1, 2, cvmGet(x, 5, 0));
   cvmSet(h, 2, 0, cvmGet(x, 6, 0));
   cvmSet(h, 2, 1, cvmGet(x, 7, 0));
-  cvmSet(h, 2, 2, cvmGet(x, 8, 0));
+  cvmSet(h, 2, 2, 1);
   
   return h;
 }
