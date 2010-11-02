@@ -9,6 +9,8 @@
 // Forward declarations
 void applyHomography ( float   x, float   y, float & xNew, float & yNew, float   h [9] );
 
+#define bugme BUGME(__FILE__, __LINE__)
+void BUGME(string file, int line) {std::cout << " [" << file << ":" << line << "]" << endl;}
 
 // This is the entry point for all panorama generation.  The output image will
 // be allocated by your code and in particular should be allocated from a call
@@ -292,7 +294,7 @@ bool matchFeatures ( const FeatureSet &     f1,
   // We have given you the ssd matching function, you must write your own
   // feature matching function for the ratio test.
 
-  std::cout << std::endl << "Matching features......." << std::endl;
+  std::cout << std::endl << "Matching features, type " << matchType << "......." << std::endl;
 
   switch ( matchType )
   {
@@ -659,15 +661,15 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
   cv::Mat features ( f2.size (), f2[0].data.size (), CV_32F );
 
   for ( size_t i = 0; i < f2.size (); ++i )
-  {
-    for ( size_t j = 0; j < f2[i].data.size (); ++j )
     {
-      features.at<float>( ( int )i, ( int )j ) = f2[i].data[j];
+      for ( size_t j = 0; j < f2[i].data.size (); ++j )
+        {
+          features.at<float>( ( int )i, ( int )j ) = f2[i].data[j];
+        }
     }
-  }
   cv::flann::Index::Index flannIndex ( features, cv::flann::KDTreeIndexParams () );
   // End FLANN index population
-
+  
   totalScore = 0;
   int count = 0;
 #ifdef Q_WS_MAEMO_5
@@ -677,30 +679,35 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
   vector<int> indicies(2);
   int i = 0;
   for ( FeatureSet::const_iterator i1 = f1.begin (); i1 != f1.end (); ++i1 )
-  {
-    flannIndex.knnSearch(i1->data, indicies, dists, 2, NULL);
-    matches[count].id1 = i1->id;
-    if(dists[0] <= dists[1])
     {
-      matches[count].id2 = indicies[0];
-      matches[count].score = dists[0]/dists[1];
-    }
-    else
-    {
-      matches[count].id2 = indicies[1];
-      matches[count].score = dists[1]/dists[0];
-    }
-    totalScore += matches[count].score;
+      flannIndex.knnSearch(i1->data, indicies, dists, 2, NULL);
 
+      FeatureMatch fm;
+      fm.id1 = i1->id;
+
+      //matches[count].id1 = i1->id;
+      if(dists[0] <= dists[1])
+        {
+          fm.id2 = indicies[0];
+          fm.score = dists[0]/dists[1];
+        }
+      else
+        {
+          fm.id2 = indicies[1];
+          fm.score = dists[1]/dists[0];
+        }
+      totalScore += fm.score;
+    
 #ifdef Q_WS_MAEMO_5
-    if ( thread && count % ( totalCount / 100 ) == 0 )
-    {
-      thread->emitProgressUpdate ( 100 * count / totalCount );
-    }
+      if ( thread && count % ( totalCount / 100 ) == 0 )
+        {
+          thread->emitProgressUpdate ( 100 * count / totalCount );
+        }
 #endif
-    ++count;
-    // @@@ Find out how to query a cv::flann::Index::Index
-  }
+      matches.push_back(fm);
+      ++count;
+      // @@@ Find out how to query a cv::flann::Index::Index
+    }
 }
 
 // RANSAC as described in lecture.  The result is a 3x3 homography matrix that
@@ -721,6 +728,8 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
                            )
 {
   // @@@ TODO Project 2b
+  printf("Got to here! \n");
+
   assert ( 0 ); // Remove when ready
 
 }
