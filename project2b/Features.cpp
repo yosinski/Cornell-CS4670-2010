@@ -49,6 +49,9 @@ inline void safeSet (IplImage * img, int ii, int jj, CvScalar val)
 }
 
 
+float test[9] = {1.5, 0.0, 0.0,
+		0.0, 1.0, 0.0,
+		0.0, 0.0, 1.0};
 
 // This is the entry point for all panorama generation.  The output image will
 // be allocated by your code and in particular should be allocated from a call
@@ -100,6 +103,15 @@ IplImage * constructPanorama ( IplImage *     img1,
 		                  , thread
 #endif  
 		                  );
+
+  float* data = h->data.fl;
+  printf("Final Homography Matrix:\n");
+  printf(" %3f, %3f, %3f\n", data[0], data[1], data[2]);
+  printf(" %3f, %3f, %3f\n", data[3], data[4], data[5]);
+  printf(" %3f, %3f, %3f\n", data[6], data[7], data[8]);
+  printf("     %3f should be rightmost, center row\n", cvmGet(h, 1, 2));  
+
+  h->data.fl = test;
 
   IplImage* result = compositeImages(img1, img2, h
 #ifdef Q_WS_MAEMO_5
@@ -859,6 +871,7 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
   CvMat * hBest = NULL;
   int inlierBest = 0;
   bugme; 
+  srand(time(NULL));
   for (ii = 0; ii < numRounds; ++ii) {
     // 1. Pick 4 random matches
     for (tries = 0; tries < 1000; ++tries) {
@@ -900,7 +913,7 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
       dist = square(xNew-f2[mm->id2].x) + square(yNew-f2[mm->id2].y);
       
       //printf("dist %d vs inlierThreshold %d\n", dist, inlierThreshold);
-      if (dist < inlierThreshold)
+      if (dist < inlierThreshold*inlierThreshold)
         ++countInliers;
     }
     
@@ -910,12 +923,20 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
       if (hBest)
         cvReleaseMat(&hBest);
       hBest = cvCloneMat(hh);
+      float* data = hBest->data.fl;
+      printf("\"Best\" Homography Matrix:\n");
+      printf(" %3f, %3f, %3f\n", data[0], data[1], data[2]);
+      printf(" %3f, %3f, %3f\n", data[3], data[4], data[5]);
+      printf(" %3f, %3f, %3f\n", data[6], data[7], data[8]);
+      printf("     %3f should be rightmost, center row\n", cvmGet(hBest, 1, 2));
     } else {
       // not best, so release this homography matrix
       cvReleaseMat(&hh);
     }
     
   }
+
+  printf("Number of RANSAC Inliers: %d\n", inlierBest);
 
   assert ( hBest );       // make sure we got something
   
@@ -973,6 +994,20 @@ CvMat * computeHomography ( const std::vector<Feature> &      f1,
   //  cvmSet(b, i, 0, 0); //set all to 0
   //}
 
+  printf(" A Matrix:\n");
+  for ( int i = 0; i < 2*matches.size(); i++ )
+  {
+    printf("   | ");
+    for (int j = 0; j < 8; j++)
+      printf("%0.3f\t", cvmGet(A, i, j));
+    printf("|\n");
+  }
+
+  printf(" B Vector:\n");
+  for ( int i = 0; i < 2*matches.size(); i++ )
+    printf("   | %0.3f \t|\n", cvmGet(b, i, 0));
+
+
   //Run Solve:
   CvMat* x = cvCreateMat(8, 1, CV_32FC1);
   cvSolve(A, b, x, CV_SVD);
@@ -986,6 +1021,13 @@ CvMat * computeHomography ( const std::vector<Feature> &      f1,
   cvmSet(h, 2, 0, cvmGet(x, 6, 0));
   cvmSet(h, 2, 1, cvmGet(x, 7, 0));
   cvmSet(h, 2, 2, 1);
+
+  float* data = h->data.fl;
+  printf("Homography Matrix:\n");
+  printf(" %3f, %3f, %3f\n", data[0], data[1], data[2]);
+  printf(" %3f, %3f, %3f\n", data[3], data[4], data[5]);
+  printf(" %3f, %3f, %3f\n", data[6], data[7], data[8]);
+  printf("     %3f should be rightmost, center row\n", cvmGet(h, 1, 2));
   
   return h;
 }
