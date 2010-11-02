@@ -1,0 +1,8 @@
+To build
+--------
+qmake
+make
+
+To run and print usage
+------
+./Features -h
