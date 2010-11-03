@@ -65,6 +65,16 @@
     <p>Duffield Atrium 2</p>
     </div>
 
+    <div class="image">
+    <img src="water.png" />
+    <p>Water Bottle</p>
+    </div>
+
+    <div class="image">
+    <img src="pan_yosemite.jpg" />
+    <p>Yosemite</p>
+    </div>
+
 
     <h2>Object Matching</h2>
 
@@ -118,7 +128,7 @@ cp $gen/pan_yosemite.jpg $res
 cp $ppan/sage.png $res
 cp $ppan/duff1.png $res
 cp $ppan/duff2.png $res
-cp $ppan/duff3.png $res
+cp $ppan/water.png $res
 cp $ps/c1.png $res
 cp $ps/c2.png $res
 cp $ps/f1.png $res
