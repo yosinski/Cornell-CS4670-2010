@@ -200,6 +200,12 @@ IplImage * compositeImages ( IplImage *     img1,
   assert ( img2->depth == IPL_DEPTH_32F );
   assert ( img2->nChannels == 3 );
 
+  // get matrix inverses
+  CvMat * hinv = cvCreateMat(3, 3, CV_32FC1);
+  cvCopy(h, hinv);
+  cvInvert(hinv, h);
+  //note: matrix coming in is inverted (ransac inverts it, so we invert it again to get true h).
+
   IplImage *alpha1 = cvCreateImage(cvSize(img1->width, img1->height), IPL_DEPTH_32F, 1);
   IplImage *alpha2 = cvCreateImage(cvSize(img2->width, img2->height), IPL_DEPTH_32F, 1);
 
@@ -355,11 +361,11 @@ IplImage * compositeImages ( IplImage *     img1,
     ImageInfo(img2);
 
     // 1. Create hinv = inverse of h
-    CvMat * hinv = cvCreateMat(3, 3, CV_32FC1);
-    cvInvert(h, hinv);
+    // CvMat * hinv = cvCreateMat(3, 3, CV_32FC1);
+    // cvInvert(h, hinv);
 
-    matInfo(h);
-    matInfo(hinv);
+    // matInfo(h);
+    // matInfo(hinv);
 
 
     printf("Origin %f, %f\n", origini, originj);
@@ -960,7 +966,7 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
   cv::flann::Index::Index flannIndex ( features, cv::flann::KDTreeIndexParams () );
   // End FLANN index population
 
-  float threshold = 0.5;
+  float threshold = 0.65;
   
   totalScore = 0;
   int count = 0;
@@ -1110,8 +1116,9 @@ CvMat * ransacHomography ( const std::vector<Feature> &      f1,
   printf("Number of RANSAC Inliers: %d\n", inlierBest);
 
   assert ( hBest );       // make sure we got something
-  
-  return hBest;
+  CvMat * hinv = cvCreateMat(3, 3, CV_32FC1);
+  cvInvert(hBest, hinv);
+  return hinv;
 }
 
 // The resulting matrix is a 3x3 homography matrix.  You may find cvSolve

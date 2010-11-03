@@ -34,24 +34,64 @@
     <p>Cooper Bills (csb88) and Jason Yosinski (jy495)<br />2 November 2010</p>
 
 
+    <h2>Design Choices</h2>
+    <p><ul>
+        <li>Our ratio feature matching uses a threshold (currently set to 0.65)</li>
+        <li>Our total score for our feature matching is the negative of number of features matched (to account for thresholding)</li>
+    </ul></p>
 
     <h2>Panoramas</h2>
 
-    <p>Here are some example images:</p>
+    <p>Our program was able to generate beautiful looking panoramas given two overlapping images, Using Homographies, RANSAC, and Feathering/Alpha Blending</p>
+    <p>Here are some example panoramas generated on the N900:</p>
 
     <div class="image">
-    <img src="Yosemite1.jpg" />
-    <p>Input image 1</p>
+    <img src="sage.png" />
+    <p>Sage Hall</p>
     </div>
 
     <div class="image">
-    <img src="Yosemite2.jpg" />
-    <p>Input image 2</p>
+    <img src="duff1.png" />
+    <p>Windows of Phillips from Duffied</p>
     </div>
 
     <div class="image">
-    <img src="pan_yosemite.jpg" />
-    <p>Stitched image</p>
+    <img src="duff2.png" />
+    <p>Duffield Atrium 1</p>
+    </div>
+
+    <div class="image">
+    <img src="duff3.png" />
+    <p>Duffield Atrium 2</p>
+    </div>
+
+
+    <h2>Object Matching</h2>
+
+    <p>Our program succussfuly idetifies what object is present (from a database) and computes the Homography for it's location and orentation using RANSAC.  Note that because we used such a strong threshold for feature matching, many of the features on the books/dvd covers were not chosen.  This improves performance by ignoring more extraneous features.</p> 
+
+    <div class="image">
+    <img style="max-width:47.5%" src="c1.png" />
+    <img style="max-width:47.5%" src="c2.png" />
+    <p>C Programming Book</p>
+    </div>
+
+    <div class="image">
+    <img style="max-width:47.5%" src="ai1.png" />
+    <img style="max-width:47.5%" src="ai2.png" />
+    <p>Artificial Intelligence Book</p>
+    </div>
+
+    <div class="image">
+    <img style="max-width:47.5%" src="mb1.png" />
+    <img style="max-width:47.5%" src="mb2.png" />
+    <p>To Kill a Mokingbird DVD</p>
+    </div>
+
+    <div class="image">
+    <img style="max-width:47.5%" src="f1.png" />
+    <img style="max-width:47.5%" src="f2.png" />
+    <p>Futurama DVD</p>
     </div>
 
     </div>
@@ -70,10 +110,23 @@ EOF
 dat=./data
 gen=./generated
 res=./results
+ppan=./PhonePans
+ps=./PhoneShots
 cp $dat/Yosemite1.jpg $res
 cp $dat/Yosemite2.jpg $res
 cp $gen/pan_yosemite.jpg $res
-
+cp $ppan/sage.png $res
+cp $ppan/duff1.png $res
+cp $ppan/duff2.png $res
+cp $ppan/duff3.png $res
+cp $ps/c1.png $res
+cp $ps/c2.png $res
+cp $ps/f1.png $res
+cp $ps/f2.png $res
+cp $ps/mb1.png $res
+cp $ps/mb2.png $res
+cp $ps/ai1.png $res
+cp $ps/ai2.png $res
 echo "results/index.html created"
 
 rm -f webpage.zip && zip -r webpage.zip results
