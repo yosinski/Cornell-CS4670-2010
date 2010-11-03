@@ -119,19 +119,19 @@ IplImage * constructPanorama ( IplImage *     img1,
 		                  );
 
   float* data = h->data.fl;
-  printf("Final Homography Matrix:\n");
-  printf(" %3f, %3f, %3f\n", data[0], data[1], data[2]);
-  printf(" %3f, %3f, %3f\n", data[3], data[4], data[5]);
-  printf(" %3f, %3f, %3f\n", data[6], data[7], data[8]);
-  printf("     %3f should be rightmost, center row\n", cvmGet(h, 1, 2));  
+  // printf("Final Homography Matrix:\n");
+  // printf(" %3f, %3f, %3f\n", data[0], data[1], data[2]);
+  // printf(" %3f, %3f, %3f\n", data[3], data[4], data[5]);
+  // printf(" %3f, %3f, %3f\n", data[6], data[7], data[8]);
+  // printf("     %3f should be rightmost, center row\n", cvmGet(h, 1, 2));  
 
   //  h->data.fl = test;
 
   data = h->data.fl;
-  printf("Final Final Homography Matrix:\n");
-  printf(" %3f, %3f, %3f\n", data[0], data[1], data[2]);
-  printf(" %3f, %3f, %3f\n", data[3], data[4], data[5]);
-  printf(" %3f, %3f, %3f\n", data[6], data[7], data[8]);
+  // printf("Final Final Homography Matrix:\n");
+  // printf(" %3f, %3f, %3f\n", data[0], data[1], data[2]);
+  // printf(" %3f, %3f, %3f\n", data[3], data[4], data[5]);
+  // printf(" %3f, %3f, %3f\n", data[6], data[7], data[8]);
 
   IplImage* result = compositeImages(img2, img1, h
 #ifdef Q_WS_MAEMO_5
@@ -926,7 +926,7 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
       //matches[count].id1 = i1->id;
       if(dists[0] <= dists[1])
         {
-	  printf("dist: %f\n", dists[0]);
+	  // printf("dist: %f\n", dists[0]);
           fm.id2 = f2[indicies[0]].id;
           fm.score = dists[0]/dists[1];
         }
@@ -937,7 +937,7 @@ void ratioMatchFeatures ( const FeatureSet &     f1,
         }
       if(fm.score < threshold)
 	{
-    	  printf("Matched (%d, %d) => (%d, %d) with score %f\n", f2[indicies[0]].x, f2[indicies[0]].y, i1->x, i1->y, fm.score);
+      //printf("Matched (%d, %d) => (%d, %d) with score %f\n", f2[indicies[0]].x, f2[indicies[0]].y, i1->x, i1->y, fm.score);
 	  totalScore -= 1;
 	  //totalScore += fm.score;
 	  matches.push_back(fm);
