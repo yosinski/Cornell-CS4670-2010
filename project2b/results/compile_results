@@ -1,0 +1,80 @@
+#!/bin/bash
+
+# This script make the results webpage.  Run from project2 directory
+
+
+#make || exit 1
+
+
+#cp data/bird.jpg  results/
+#cp data/lenna.jpg results/
+
+#./cs4670 -f gaussian    -i data/bird.jpg  -o results/gaussian.jpg
+#./cs4670 -f sharpen     -i data/lenna.jpg -o results/sharpen.jpg
+#./cs4670 -f sobel_x     -i data/lenna.jpg -o results/sobel_x.jpg
+#./cs4670 -f sobel_y     -i data/lenna.jpg -o results/sobel_y.jpg
+#./cs4670 -f median -p 1 -i data/lenna.jpg -o results/median_1.jpg
+#./cs4670 -f median -p 3 -i data/lenna.jpg -o results/median_3.jpg
+
+(cat <<EOF
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <meta http-equiv="Content-Language" content="en-us" />
+        <link rel="stylesheet" type="text/css" media="all" href="all.css" />
+        <title>CS4670 &ndash; Project 2b</title>
+    </head>
+    <body>
+
+    <div class="bigpage">
+    <div class="notespage">
+    <h1>CS4670 &ndash; Project 2b</h1>
+
+    <p>Cooper Bills (csb88) and Jason Yosinski (jy495)<br />2 November 2010</p>
+
+
+
+    <h2>Panoramas</h2>
+
+    <p>Here are some example images:</p>
+
+    <div class="image">
+    <img src="Yosemite1.jpg" />
+    <p>Input image 1</p>
+    </div>
+
+    <div class="image">
+    <img src="Yosemite2.jpg" />
+    <p>Input image 2</p>
+    </div>
+
+    <div class="image">
+    <img src="pan_yosemite.jpg" />
+    <p>Stitched image</p>
+    </div>
+
+    </div>
+    </div>
+    
+    </body>
+</html>
+
+EOF
+) > results/index.html
+
+#    To compute averages, use something like this:
+# dat="`cat graf*1.auc`"; echo "mean([$dat])" | octave
+# dat="`cat graf*2.auc`"; echo "mean([$dat])" | octave
+
+dat=./data
+gen=./generated
+res=./results
+cp $dat/Yosemite1.jpg $res
+cp $dat/Yosemite2.jpg $res
+cp $gen/pan_yosemite.jpg $res
+
+echo "results/index.html created"
+
+rm -f webpage.zip && zip -r webpage.zip results
+rm -f code.zip    && zip -r code.zip    Features.cpp
