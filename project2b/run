@@ -11,6 +11,13 @@
 #   2 - ratio
 
 
+function yosemite {
+    echo "yosemite..."
+
+    make || exit 1
+    rm -f *png && ./Features panorama data/Yosemite1.jpg data/Yosemite2.jpg generated/pan_yosemite.jpg 3 2
+}
+
 function books {
     echo "books..."
 
@@ -23,13 +30,14 @@ function books {
 }
 
 function phone {
+    mad make || exit 1
+
     scp Features *.db $ph:
     #scp -r $dat/images $ph:data/images
     #scp -r $gen/ $ph:$gen
     #ssh $ph "./Features"
 }
 
-mad make || exit 1
 
 mkdir -p generated
 #cd generated
@@ -38,5 +46,6 @@ gen=generated
 f=./Features
 dat=data
 
+yosemite
 #books
-phone
+#phone
