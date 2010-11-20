@@ -1,0 +1,39 @@
+\section{Progress}
+
+Our tasks and our progress on each are shown below.
+
+\newcommand{\prog}[1]{\textit{\\
+#1}}
+
+\begin{enumerate}
+\item Set up a server for collaboration and running required
+  server-side code.  \prog{Done. We set up a server and are using Trac
+    and Git for
+    collaboration\footnote{\code{http://cs4670.yosinski.com/}}.  We're
+    currently running the vision code locally, but will transition
+    parts of it to the server as the need arises.}
+\item Code and demonstrate basic face detection.  \prog{Done.  We have
+  implemented basic face detection using a Haar wavelet detector from
+  OpenCV; see Results section.}
+\item Code and demonstrate basic facial feature description.
+  \prog{Investigated, coding not started.}
+\item More...
+\item tasks...
+\item here.
+\end{enumerate}
+
+
+
+\section{Results}
+
+Some results using our Haar wavelet detector are shown in
+\figref{small_face.jpg} through \figref{three_faces.jpg}.
+
+\figvarp{small_face.jpg}{.60}{Haar wavelet detection of a face taking up
+  a small fraction of the image.}{}
+
+\figvarp{small_face_sideways.jpg}{.60}{Our Haar wavelet detector tends
+  not to work if the faces are rotated more than 30 degrees.}{}
+
+\figvarp{three_faces.jpg}{.60}{Detection of multiple faces at different
+  scales in a single image works well.}{}
