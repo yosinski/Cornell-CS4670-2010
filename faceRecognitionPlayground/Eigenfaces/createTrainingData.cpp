@@ -21,7 +21,7 @@ static CvMemStorage* storage = 0;
 static CvHaarClassifierCascade* cascade = 0;
 
 // Function prototype for detecting and drawing an object from an image
-void detect_and_draw( IplImage* image );
+void detect_and_draw( IplImage* image, const char* filename );
 IplImage* preprocessFace(IplImage *img, CvRect *face);
 
 // Create a string that contains the cascade name
@@ -87,7 +87,7 @@ int main( int argc, char** argv )
     if( capture )
     {
         // Capture from the camera.
-        for(;;)
+        for(int i=0;;i++)
         {
             // Capture the frame and load it in IplImage
             if( !cvGrabFrame( capture ))
@@ -111,7 +111,9 @@ int main( int argc, char** argv )
                 cvFlip( frame, frame_copy, 0 );
             
             // Call the function to detect and draw the face
-            detect_and_draw( frame_copy );
+            char fname[50];
+	    sprintf(fname, "camera_stream%05d.jpg", i);
+	    detect_and_draw( frame_copy, fname );
 
             // Wait for a while before proceeding to the next frame
             if( cvWaitKey( 10 ) >= 0 )
@@ -136,7 +138,7 @@ int main( int argc, char** argv )
         if( image )
         {
             // Detect and draw the face
-            detect_and_draw( image );
+	  detect_and_draw( image, filename );
 
             // Wait for user input
             cvWaitKey(0);
@@ -169,10 +171,10 @@ int main( int argc, char** argv )
                     if( image )
                     {
                         // Detect and draw the face from the image
-                        detect_and_draw( image );
+		      detect_and_draw( image, buf );
                         
                         // Wait for the user input, and release the memory
-                        cvWaitKey(0);
+                        //cvWaitKey(0);
                         cvReleaseImage( &image );
                     }
                 }
@@ -185,13 +187,13 @@ int main( int argc, char** argv )
     
     // Destroy the window previously created with filename: "result"
     cvDestroyWindow("result");
-
+    printf("Done.\n");
     // return 0 to indicate successfull execution of the program
     return 0;
 }
 
 // Function to detect and draw any faces that is present in an image
-void detect_and_draw( IplImage* img )
+void detect_and_draw( IplImage* img, const char* filename )
 {
     int scale = 1;
 
@@ -231,8 +233,12 @@ void detect_and_draw( IplImage* img )
             //cvRectangle( img, pt1, pt2, CV_RGB(255,0,0), 3, 8, 0 );
 
 	    // Show the image in the window named "result"
-	    cvShowImage( "result", preprocessFace(img, r) );
-
+	    IplImage *result = preprocessFace(img, r);
+	    cvShowImage( "result", result );
+	    char filen[300];
+	    sprintf(filen, "Result%d.%s", i, filename); 
+	    cvSaveImage(filen, result);
+	    cvReleaseImage(&result);
         }
     }
 
@@ -246,5 +252,12 @@ IplImage* preprocessFace(IplImage *img, CvRect *face) {
   cvResize(img, faceColor);
   cvResetImageROI(img);
 
-  return faceColor;
+  IplImage *faceNormalized = cvCreateImage(cvGetSize(faceColor), IPL_DEPTH_8U, 1);
+
+  cvCvtColor(faceColor, faceNormalized, CV_BGR2GRAY);
+
+  cvEqualizeHist(faceNormalized, faceNormalized);
+
+  cvReleaseImage(&faceColor);
+  return faceNormalized;
 }
