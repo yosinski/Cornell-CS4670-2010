@@ -1,4 +1,5 @@
-LIBS := -lhighgui -lcvaux -Lcxflann_i386
+#LIBS := -lhighgui -lcvaux -Lcxflann_i386
+LIBS := -lhighgui -lcvaux -lflann
 ALL  := eigenDecomp createEigenvectors createTrainingData
 
 all : $(ALL)
