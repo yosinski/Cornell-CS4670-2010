@@ -4,6 +4,12 @@
 #include "opencv/cv.h"
 #include "opencv/highgui.h"
 #include "opencv/cvaux.h"
+//#include "flann/flann.h"
+//#include "flann/io/hdf5.h"
+// To use our own flann, the flann library from opencv
+// must be removed.  to do this, comment out the include in cxcore.hpp:
+// #include "cxflann.h"
+// I know this isnt a good way of doing this, but it works and is easy.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,27 +97,38 @@ int main( int argc, char** argv )
     }
 
     //TODO: unfix this number!
-    printf("FLANN DIMS: %d, %d\n", 165, images.size());
-    cv::Mat mat( 165, images.size(), CV_32F );
-    cv::flann::Index::Index flannIndex(mat, cv::flann::SavedIndexParams("flann.dat"));
-    
-    IplImage* eigenArray[images.size()-1];
+    //printf("FLANN DIMS: %d, %d\n", 165, images.size());
+    //cv::Mat mat( 165, images.size(), CV_32F );
+    //flann::Matrix<float> flannmat;
+    //flann::load_from_file(flannmat, "flann.dat", "flann.dat"); 
+    //flann::Index::Index flannIndex(flannmat, flann::LinearIndexParams());
+    printf("Loading Matrix...\n");
+    CvMat* flannmat;
+    CvFileStorage* fs = cvOpenFileStorage("nn.yml", NULL, CV_STORAGE_READ);
+    flannmat = (CvMat*)cvRead(fs, cvGetFileNodeByName(fs, NULL, "data"), &cvAttrList(0,0));
+    //cvReleaseFileStorage(&fs); This will delete the matrix
+    printf("FLANN MATRIX DIMS: %d, %d\n", flannmat->rows, flannmat->cols);
+    cv::flann::Index::Index flannIndex(flannmat, cv::flann::LinearIndexParams());
+        
+    int projection_dims = images.size()-1;
+
+    IplImage* eigenArray[projection_dims];
     
     IplImage* avgImage = images[0]; 
-    for(int i = 1; i < images.size(); i++) {
-      eigenArray[i-1] = images[i];
+    for(int i = 0; i < projection_dims; i++) {
+      eigenArray[i] = images[i+1];
       //      cvShowImage("result", imageArray[i]);
       //      cvWaitKey(0);
     }
 
     //load test image
     IplImage* testImg = cvLoadImage(testImage, CV_LOAD_IMAGE_GRAYSCALE);
-    float projection[images.size()];
+    float projection[projection_dims];
 
     // Project the test image onto the PCA subspace
     cvEigenDecomposite(
 		       testImg, //test object
-		       images.size()-1, //number of eigen vectors
+		       projection_dims, //number of eigen vectors
 		       (void*)eigenArray, //eigenVectors
 		       0, 0, //ioflags, user callback data
 		       avgImage, //root eigen vector
@@ -120,14 +137,14 @@ int main( int argc, char** argv )
     
     //print projection
     printf("Eigenvector Coefficents:\n");
-    for(int i = 0; i < images.size() - 1; i++) //-1 since one less eigenvalue than images
+    for(int i = 0; i < projection_dims; i++) 
       printf("%5f ", projection[i]);
     printf("\n");
 
-    std::vector<float> proj(images.size());
+    std::vector<float> proj(projection_dims);
     std::vector<float> dists(1);
     std::vector<int> indicies(1);
-    for(int i = 0; i < images.size(); i++)
+    for(int i = 0; i < projection_dims; i++)
       proj[i] = projection[i];
     
     flannIndex.knnSearch(proj, indicies, dists, 1, NULL);

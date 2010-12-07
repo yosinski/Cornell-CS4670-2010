@@ -38,19 +38,7 @@ int main( int argc, char** argv )
     // Images to capture the frame from video or camera or from file
     IplImage *frame, *frame_copy = 0;
 
-    // Used for calculations
-    int optlen = strlen("--cascade=");
 
-    // Input file name for avi or image file.
-    const char* input_name;
-
-    // Check for the correct usage of the command line
-    if( argc > 1 && strncmp( argv[1], "--cascade=", optlen ) == 0 )
-    {
-        cascade_name = argv[1] + optlen;
-        input_name = argc > 2 ? argv[2] : 0;
-    }
-    else
     {
         fprintf( stderr,
         "Usage: facedetect --cascade=\"<cascade_path>\" [filename|camera_index]\n" );

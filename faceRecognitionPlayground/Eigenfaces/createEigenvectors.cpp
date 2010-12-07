@@ -124,7 +124,7 @@ int main( int argc, char** argv )
     printf("\n");
 
     int projection_dims = 0;
-    while(!cvIsNaN(lambdas[projection_dims]))
+    while(!cvIsNaN(lambdas[projection_dims]) && projection_dims < images.size())
       projection_dims++;
 
     //populate flann
@@ -143,9 +143,17 @@ int main( int argc, char** argv )
       for ( size_t j = 0; j < projection_dims; ++j ) {
 	features.at<float>( ( int )i, ( int )j ) = data[j];
       }
+      printf("Eigenvector Coefficents:\n");
+      for(int j = 0; j < projection_dims; j++) //-1 since one less eigenvalue than images
+	printf("%5f ", data[j]);
+      printf("\n");
+
     }
-    cv::flann::Index::Index flannIndex ( features, cv::flann::KDTreeIndexParams () );
-    flannIndex.save("flann.dat");
+    CvFileStorage* fs = cvOpenFileStorage("nn.yml", NULL, CV_STORAGE_WRITE);
+    cvWrite(fs, "data", &((CvMat)features), cvAttrList(0,0));
+    cvReleaseFileStorage(&fs);
+    //cv::flann::Index::Index flannIndex ( features, cv::flann::KDTreeIndexParams () );
+    //flannIndex.save("flann.dat");
     
 
 
