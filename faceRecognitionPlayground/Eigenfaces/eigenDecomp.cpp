@@ -40,15 +40,15 @@ int main( int argc, char** argv )
     const char* testImage;
 
     // Check for the correct usage of the command line
-    if( argc > 2 )
+    if( argc == 2 )
     {
-        vectorList = argv[1];
-	testImage = argv[2];
+      //vectorList = argv[1];
+      testImage = argv[1];
     }
     else
     {
-        fprintf( stderr, "Usage: eigenDecomp eigenVectorList testImage\n" );
-        return -1;
+      fprintf( stderr, "Usage: eigenDecomp testImage\n" );
+      return -1;
     }
 
     // Allocate the memory storage
@@ -59,8 +59,7 @@ int main( int argc, char** argv )
 
     std::vector<IplImage*> images;
 
-    /* assume it is a text file containing the
-       list of the image filenames to be processed - one per line */
+    /* Old code:
     FILE* f = fopen( vectorList, "rt" );
     if( f )
     {
@@ -95,8 +94,23 @@ int main( int argc, char** argv )
 	// Close the file
 	fclose(f);
     }
+    */
 
-    //TODO: unfix this number!
+    //Load Eigenvectors:
+    printf("Loading Eigenvectors...\n");
+    CvFileStorage* fs2 = cvOpenFileStorage("eigenvectors.yml", NULL, CV_STORAGE_READ);
+    char vectorname[50];
+    CvFileNode* vectorloc = cvGetFileNodeByName(fs2, NULL, "vector0");
+    for(int i = 1; vectorloc != NULL; i++) {
+      images.push_back((IplImage*)cvRead(fs2, vectorloc, &cvAttrList(0,0)));
+      //printf("pushed %s\n", vectorname);
+      sprintf(vectorname, "vector%d", i);
+      vectorloc = cvGetFileNodeByName(fs2, NULL, vectorname);
+    }
+    //cvReleaseFileStorage(&fs2); This may delete the images
+    printf("%d Eigenvectors (and 1 average) loaded.\n", images.size()-1);
+
+    //TODO: unfix this number! - Done!
     //printf("FLANN DIMS: %d, %d\n", 165, images.size());
     //cv::Mat mat( 165, images.size(), CV_32F );
     //flann::Matrix<float> flannmat;
@@ -117,15 +131,15 @@ int main( int argc, char** argv )
     IplImage* avgImage = images[0]; 
     for(int i = 0; i < projection_dims; i++) {
       eigenArray[i] = images[i+1];
-      //      cvShowImage("result", imageArray[i]);
-      //      cvWaitKey(0);
     }
 
     //load test image
+    printf("Loading Test Image...\n");
     IplImage* testImg = cvLoadImage(testImage, CV_LOAD_IMAGE_GRAYSCALE);
     float projection[projection_dims];
 
     // Project the test image onto the PCA subspace
+    printf("Conducting Eigen Decomposite...\n");
     cvEigenDecomposite(
 		       testImg, //test object
 		       projection_dims, //number of eigen vectors

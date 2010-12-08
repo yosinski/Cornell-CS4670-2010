@@ -143,20 +143,31 @@ int main( int argc, char** argv )
       for ( size_t j = 0; j < projection_dims; ++j ) {
 	features.at<float>( ( int )i, ( int )j ) = data[j];
       }
-      printf("Eigenvector Coefficents:\n");
-      for(int j = 0; j < projection_dims; j++) //-1 since one less eigenvalue than images
-	printf("%5f ", data[j]);
-      printf("\n");
-
+      //printf("Eigenvector Coefficents:\n");
+      //for(int j = 0; j < projection_dims; j++) //-1 since one less eigenvalue than images
+	  //printf("%5f ", data[j]);
+      //printf("\n");
     }
+
+    //Save neighbor data to disk
     CvFileStorage* fs = cvOpenFileStorage("nn.yml", NULL, CV_STORAGE_WRITE);
     cvWrite(fs, "data", &((CvMat)features), cvAttrList(0,0));
     cvReleaseFileStorage(&fs);
+
+    //Save eigenvectors to disk
+    CvFileStorage* fs2 = cvOpenFileStorage("eigenvectors.yml", NULL, CV_STORAGE_WRITE);
+    cvWrite(fs2, "vector0", avgImage, cvAttrList(0,0));
+    char filename[50];
+    for(int i = 0; i < projection_dims; i++) {
+      sprintf(filename, "vector%d", i+1);
+      cvWrite(fs2, filename, eigenArray[i], cvAttrList(0,0));
+    }
+    cvReleaseFileStorage(&fs2);
     //cv::flann::Index::Index flannIndex ( features, cv::flann::KDTreeIndexParams () );
     //flannIndex.save("flann.dat");
     
 
-
+    /*
     IplImage* uimg = cvCreateImage(cvGetSize(images[0]), IPL_DEPTH_8U, 1);
 
     //show eigenfaces
@@ -189,6 +200,7 @@ int main( int argc, char** argv )
       cvShowImage("result", uimg);
       cvWaitKey(20);
     }
+    */
 			
     // Destroy the window previously created with filename: "result"
     cvDestroyWindow("result");
