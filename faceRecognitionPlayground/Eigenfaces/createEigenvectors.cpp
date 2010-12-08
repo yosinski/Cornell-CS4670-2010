@@ -19,6 +19,8 @@
 // Create memory for calculations
 static CvMemStorage* storage = 0;
 
+int min(int a, int b) { return a > b ? b : a; }
+
 // Main function, defines the entry point for the program.
 int main( int argc, char** argv )
 {
@@ -29,20 +31,19 @@ int main( int argc, char** argv )
     // Images to capture the frame from video or camera or from file
     IplImage *frame, *frame_copy = 0;
 
-    // Used for calculations
-    int optlen = strlen("--cascade=");
-
     // Input file name for avi or image file.
     const char* input_name;
+    int nn_dimensions;
 
     // Check for the correct usage of the command line
-    if( argc > 1 )
+    if( argc > 2 && atoi(argv[2]) > 0)
     {
         input_name = argv[1];
+	nn_dimensions = atoi(argv[2]);
     }
     else
     {
-        fprintf( stderr, "Usage: generate imagelist\n" );
+        fprintf( stderr, "Usage: createEigenVectors imagelist NNDimensions\n" );
         return -1;
     }
 
@@ -53,6 +54,7 @@ int main( int argc, char** argv )
     cvNamedWindow( "result", 1 );
 
     std::vector<IplImage*> images;
+    std::vector<char*> labels;
 
     /* assume it is a text file containing the
        list of the image filenames to be processed - one per line */
@@ -79,10 +81,11 @@ int main( int argc, char** argv )
 	    {
 	      // Add image to vector
 	      images.push_back(image);
-	      // Wait for the user input, and release the memory
-	      //cvWaitKey(0);
-	      //cvReleaseImage( &image );
-	    }
+	      char* str = (char*)malloc(sizeof(char)*100);
+	      memcpy(str, buf, 100);
+	      labels.push_back(str);
+	    }else
+	      printf("failed to load image: %s\n", buf);
 	}
 	// Close the file
 	fclose(f);
@@ -128,8 +131,8 @@ int main( int argc, char** argv )
       projection_dims++;
 
     //populate flann
-    printf("FLANN DIMS: %d, %d\n", images.size(), projection_dims);
-    cv::Mat features ( images.size (), projection_dims, CV_32F );
+    printf("FLANN DIMS: %d, %d\n", images.size(), min(projection_dims, nn_dimensions));
+    cv::Mat features ( images.size (), min(projection_dims, nn_dimensions), CV_32F );
 
     for ( size_t i = 0; i < images.size (); ++i ) {
       float data[projection_dims];
@@ -140,7 +143,7 @@ int main( int argc, char** argv )
 		       0, 0, //ioflags, user callback data
 		       avgImage, //root eigen vector
 		       data);
-      for ( size_t j = 0; j < projection_dims; ++j ) {
+      for ( size_t j = 0; j < min(projection_dims, nn_dimensions); ++j ) {
 	features.at<float>( ( int )i, ( int )j ) = data[j];
       }
       //printf("Eigenvector Coefficents:\n");
@@ -163,6 +166,13 @@ int main( int argc, char** argv )
       cvWrite(fs2, filename, eigenArray[i], cvAttrList(0,0));
     }
     cvReleaseFileStorage(&fs2);
+
+    //save labels to disk
+    FILE* lf = fopen( "labels.txt", "w" );
+    for(int i = 0; i < labels.size(); i++) 
+      fprintf(lf, "%s\n", labels[i]);
+    fclose(lf);
+
     //cv::flann::Index::Index flannIndex ( features, cv::flann::KDTreeIndexParams () );
     //flannIndex.save("flann.dat");
     

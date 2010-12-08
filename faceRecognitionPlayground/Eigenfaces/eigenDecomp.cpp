@@ -58,15 +58,17 @@ int main( int argc, char** argv )
     cvNamedWindow( "result", 1 );
 
     std::vector<IplImage*> images;
+    std::vector<char*> labels;
 
-    /* Old code:
-    FILE* f = fopen( vectorList, "rt" );
+    //Load Labels
+    printf("Loading Labels...  ");
+    FILE* f = fopen( "labels.txt", "rt" );
     if( f )
     {
-        char buf[1000+1];
+        char buf[100+1];
 
 	// Get the line from the file
-	while( fgets( buf, 1000, f ) )
+	while( fgets( buf, 100, f ) )
 	{
 
 	    // Remove the spaces if any, and clean up the name
@@ -75,29 +77,18 @@ int main( int argc, char** argv )
 	        len--;
 	    buf[len] = '\0';
 
-	    // Load the image from the filename present in the buffer
-	    IplImage* image = cvLoadImage( buf, CV_LOAD_IMAGE_GRAYSCALE );
-
-	    // If the image was loaded succesfully, then:
-	    if( image )
-	    {
-	      // Add image to vector
-	      IplImage* converted = cvCreateImage(cvGetSize(image), IPL_DEPTH_32F, 1);
-	      cvConvertScale(image, converted, 1/255.0);
-	      images.push_back(converted);
-	      // Wait for the user input, and release the memory
-	      //cvShowImage("result", converted);
-	      //cvWaitKey(0);
-	      cvReleaseImage( &image );
-	    }
+	    char* str = (char*)malloc(sizeof(char)*100);
+	    memcpy(str, buf, 100);
+	    labels.push_back(str);
 	}
 	// Close the file
 	fclose(f);
-    }
-    */
+	printf("%d Labels loaded.\n", labels.size());
+    }else
+      printf("Failed.\n");
 
     //Load Eigenvectors:
-    printf("Loading Eigenvectors...\n");
+    printf("Loading Eigenvectors...  ");
     CvFileStorage* fs2 = cvOpenFileStorage("eigenvectors.yml", NULL, CV_STORAGE_READ);
     char vectorname[50];
     CvFileNode* vectorloc = cvGetFileNodeByName(fs2, NULL, "vector0");
@@ -116,15 +107,16 @@ int main( int argc, char** argv )
     //flann::Matrix<float> flannmat;
     //flann::load_from_file(flannmat, "flann.dat", "flann.dat"); 
     //flann::Index::Index flannIndex(flannmat, flann::LinearIndexParams());
-    printf("Loading Matrix...\n");
+    printf("Loading Nearest Neighbor Matrix...  ");
     CvMat* flannmat;
     CvFileStorage* fs = cvOpenFileStorage("nn.yml", NULL, CV_STORAGE_READ);
     flannmat = (CvMat*)cvRead(fs, cvGetFileNodeByName(fs, NULL, "data"), &cvAttrList(0,0));
     //cvReleaseFileStorage(&fs); This will delete the matrix
-    printf("FLANN MATRIX DIMS: %d, %d\n", flannmat->rows, flannmat->cols);
+    printf("Done. DIMS: %d, %d\n", flannmat->rows, flannmat->cols);
     cv::flann::Index::Index flannIndex(flannmat, cv::flann::LinearIndexParams());
-        
-    int projection_dims = images.size()-1;
+
+    int nn_dims = flannmat->cols; //number of nearest neighbor dimensions available
+    int projection_dims = images.size()-1; //number of dimensions to project into eigenspace.
 
     IplImage* eigenArray[projection_dims];
     
@@ -150,20 +142,24 @@ int main( int argc, char** argv )
 
     
     //print projection
-    printf("Eigenvector Coefficents:\n");
-    for(int i = 0; i < projection_dims; i++) 
-      printf("%5f ", projection[i]);
-    printf("\n");
+    //printf("Eigenvector Coefficents:\n");
+    //for(int i = 0; i < projection_dims; i++) 
+	//printf("%5f ", projection[i]);
+    //printf("\n");
 
-    std::vector<float> proj(projection_dims);
-    std::vector<float> dists(1);
-    std::vector<int> indicies(1);
-    for(int i = 0; i < projection_dims; i++)
+    int neighbors = 10; //to test against
+
+    std::vector<float> proj(nn_dims);
+    std::vector<float> dists(neighbors);
+    std::vector<int> indicies(neighbors);
+    for(int i = 0; i < nn_dims; i++)
       proj[i] = projection[i];
-    
-    flannIndex.knnSearch(proj, indicies, dists, 1, NULL);
-    printf("Index Match: %d, dist: %f\n", indicies[0], dists[0]);
-			
+
+    flannIndex.knnSearch(proj, indicies, dists, neighbors, NULL);
+    for(int i = 0; i < neighbors; i++)
+      printf("Index Match0: %4d, dist: %13.3f, Label: %s\n", 
+	     indicies[i], dists[i], labels[indicies[i]]);
+
     // Destroy the window previously created with filename: "result"
     cvDestroyWindow("result");
     printf("Done.\n");
