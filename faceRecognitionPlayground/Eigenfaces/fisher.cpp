@@ -36,9 +36,8 @@ int main( int argc, char** argv )
     int nn_dimensions;
 
     // Check for the correct usage of the command line
-    if( argc > 2 && atoi(argv[2]) > 0) {
+    if( argc > 1 ) {
         input_name = argv[1];
-        nn_dimensions = atoi(argv[2]);
     } else {
         fprintf( stderr, "Usage: fisher <list_of_subject_files.txt>\n" );
         return -1;
