@@ -24,8 +24,13 @@
          << " imageInfo(" << #x << ")" << endl;     \
     imageInfo(x);                                   \
     saveImage(__FILE__, __LINE__, #x, x);
+#define MatInfo(x)                                  \
+    cout << "\n" << __FILE__ << ":" << __LINE__     \
+         << " matInfo(" << #x << ")" << endl;       \
+    matInfo(x);
 #else
 #define ImageInfo(x)
+#define MatInfo(x)
 #endif
 
 // Forward declarations
@@ -49,17 +54,9 @@ int min(int a, int b) { return a > b ? b : a; }
 // Main function, defines the entry point for the program.
 int main( int argc, char** argv )
 {
-
-    // Structure for getting video from camera or avi
-    CvCapture* capture = 0;
-
-    // Images to capture the frame from video or camera or from file
-    IplImage *frame, *frame_copy = 0;
-
     // Input file name for avi or image file.
     const char* subjects_filename;
     const char* image_to_classify;
-    int nn_dimensions;
 
     // Check for the correct usage of the command line
     if( argc > 2 ) {
@@ -82,20 +79,21 @@ int main( int argc, char** argv )
      *  1. Load class_*.txt files and images
      ******************************/
 
-    vector< IplImage* >  images;
-    vector< int >        class_ids;
-    vector< string >     class_labels;
-    vector< string >     image_labels;
+    vector< string >     class_labels;       // short list of class labels
+    vector< IplImage* >  images;             // long list of images
+    vector< int >        class_ids;          // long list of class ids
+    vector< string >     image_labels;       // long list of image labels
 
     //vector< IplImage* >               temp_class_images;
     //vector< string >                  temp_labels;
 
     /* assume it is a text file containing the
        list of the single class filenames to be processed - one per line */
-    int current_class_id = 1;
+    int num_classes = 0;  // one more than the highest numbered class
     FILE* class_all_file = fopen( subjects_filename, "rt" );
     if( class_all_file ) {
         char buf[1000+1];
+        char buf2[1000+1];
         
         // Get the line from the file
         while( fgets( buf, 1000, class_all_file ) ) {
@@ -107,6 +105,7 @@ int main( int argc, char** argv )
             buf[len] = '\0';
 
             string class_label(buf);
+            class_labels.push_back(class_label);
 
             //temp_class_images.clear();
             //temp_labels.clear();
@@ -115,27 +114,29 @@ int main( int argc, char** argv )
 
             if (class_subject_file) {
                 // Get the line from the file
-                while( fgets( buf, 1000, class_subject_file ) ) {
+                while( fgets( buf2, 1000, class_subject_file ) ) {
                     // Remove the spaces if any, and clean up the name
-                    int len = (int)strlen(buf);
-                    while( len > 0 && isspace(buf[len-1]) )
+                    int len = (int)strlen(buf2);
+                    while( len > 0 && isspace(buf2[len-1]) )
                         len--;
-                    buf[len] = '\0';
+                    buf2[len] = '\0';
 
                     // Load the image from the filename present in the buffer
-                    IplImage* image = cvLoadImage( buf, CV_LOAD_IMAGE_GRAYSCALE );
+                    IplImage* image = cvLoadImage( buf2, CV_LOAD_IMAGE_GRAYSCALE );
 
                     // If the image was loaded succesfully, then:
                     if( ! image ) {
-                        printf("ERROR: Failed to load image: %s\n", buf);
+                        printf("ERROR: Failed to load image: %s\n", buf2);
                     }
 
                     // 1. save class label (e.g. class_subject01.txt)
-                    class_labels.push_back(class_label);
+                    //class_labels.push_back(class_label);
                     // 2. save class id (e.g. 1)
-                    class_ids.push_back(current_class_id);
+                    class_ids.push_back(num_classes);
                     // 3. save image label
-                    image_labels.push_back(string(buf));
+                    string temp(buf2);
+                    //printf("Read %s\n", temp.c_str());
+                    image_labels.push_back(temp);
                     // 4. save image
                     images.push_back(image);
                 }
@@ -145,13 +146,17 @@ int main( int argc, char** argv )
 
             fclose(class_subject_file);
         
-            current_class_id++;
+            num_classes++;
         }
         // Close the file
         fclose(class_all_file);
     } else {
         printf("ERROR: Failure reading class file '%s'!\n", subjects_filename);
     }
+
+    // vector< int > class_ids_unique = class_ids;
+    // sort(class_ids_unique.begin(), class_ids_unique.end());
+    // unique(class_ids_unique.begin(), class_ids_unique.end());
 
 
 
@@ -182,10 +187,11 @@ int main( int argc, char** argv )
     char vectorname[50];
     CvFileNode* vectorloc = cvGetFileNodeByName(fs2, NULL, "vector0");
     for(int i = 1; vectorloc != NULL; i++) {
-      eigen_images.push_back((IplImage*)cvRead(fs2, vectorloc, &cvAttrList(0,0)));
-      //printf("pushed %s\n", vectorname);
-      sprintf(vectorname, "vector%d", i);
-      vectorloc = cvGetFileNodeByName(fs2, NULL, vectorname);
+        IplImage* temp = (IplImage*)cvRead(fs2, vectorloc, &cvAttrList(0,0));
+        eigen_images.push_back(temp);
+        //printf("pushed %s\n", vectorname);
+        sprintf(vectorname, "vector%d", i);
+        vectorloc = cvGetFileNodeByName(fs2, NULL, vectorname);
     }
     //cvReleaseFileStorage(&fs2); This may delete the images
     printf("done.\n%d Eigenvectors (and 1 average) loaded.\n", eigen_images.size()-1);
@@ -201,9 +207,8 @@ int main( int argc, char** argv )
     }
 
 
-    int selected_class_id = 1;
-
     // 2. Project all images onto eigen vectors
+    printf("Projecting all images onto eigenvectors\n");
     int eigen_dimensions = eigen_images.size() - 1;      // first is average
 
     IplImage* eigen_array[eigen_dimensions];
@@ -213,9 +218,7 @@ int main( int argc, char** argv )
 
     //cv::Mat features(images.size(), eigen_dimensions, CV_32F);
 
-    CvMat* features;
-    features = cvCreateMat(images.size(), eigen_dimensions, CV_32F);
-
+    CvMat* features = cvCreateMat(images.size(), eigen_dimensions, CV_32F);
 
     float data[eigen_dimensions];
     for (int ii = 0; ii < images.size(); ii++) {
@@ -232,61 +235,98 @@ int main( int argc, char** argv )
         }
     }
 
-    //matInfo(features);
+    //MatInfo(features);
 
 
 
-    // 3. Sort images into arrays for each class
-    vector<int> idx_class0, idx_class1;
-    for (int ii = 0; ii < images.size(); ii++) {
-        if (class_ids[ii] == selected_class_id)
-            idx_class1.push_back(ii);
-        else
-            idx_class0.push_back(ii);
+    vector< CvMat* > weights;
+    vector< float >  scores_mean0;
+    vector< float >  scores_mean1;
+
+    // For each subject
+    for (int cc = 0; cc < num_classes; cc++) {
+        //printf("Size of class_labels is %d\n", class_labels.size());
+        //class_labels[cc];
+        printf("Creating Fisher classifier for class %2d, %s", cc, class_labels[cc].c_str());
+
+        // 3. Sort images into arrays for each class
+        vector<int> idx_class0, idx_class1;
+        for (int ii = 0; ii < images.size(); ii++) {
+            if (class_ids[ii] == cc)
+                idx_class1.push_back(ii);
+            else
+                idx_class0.push_back(ii);
+        }
+        int size_class0 = idx_class0.size();
+        int size_class1 = idx_class1.size();
+        printf(", %3d vs %3d\n", size_class0, size_class1);
+        assert(size_class0 > 0 && size_class1 > 0);
+        
+        //ImageInfo(images[idx_class0[0]]);
+        //ImageInfo(images[idx_class1[0]]);
+
+        // Here we copy features into two separate matrices, one for each class
+        CvMat* features_class0 = cvCreateMat(size_class0, eigen_dimensions, CV_32F);
+        CvMat* features_class1 = cvCreateMat(size_class0, eigen_dimensions, CV_32F);
+        for (int ii = 0; ii < size_class0; ii++)
+            for (int jj = 0; jj < eigen_dimensions; jj++)
+                CV_MAT_ELEM(*features_class0, float, ii, jj) = CV_MAT_ELEM(*features, float, idx_class0[ii], jj);
+        for (int ii = 0; ii < size_class1; ii++)
+            for (int jj = 0; jj < eigen_dimensions; jj++)
+                CV_MAT_ELEM(*features_class1, float, ii, jj) = CV_MAT_ELEM(*features, float, idx_class1[ii], jj);
+
+
+        // 4. compute covariance matrices and means for class 0 (not
+        // selected) and class 1 (selected)
+        CvMat* cov0 = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
+        CvMat* cov1 = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
+
+        CvMat* mean0 = cvCreateMat(1, eigen_dimensions, CV_32F);
+        CvMat* mean1 = cvCreateMat(1, eigen_dimensions, CV_32F);
+
+        //cvCalcCovarMatrix((const CvArr**)&features_class0, size_class0, cov0, mean0, CV_COVAR_ROWS);
+        //cvCalcCovarMatrix((const CvArr**)&features_class1, size_class1, cov1, mean1, CV_COVAR_ROWS);
+        cvCalcCovarMatrix((const CvArr**)&features_class0, size_class0, cov0, mean0, CV_COVAR_ROWS | CV_COVAR_NORMAL);
+        cvCalcCovarMatrix((const CvArr**)&features_class1, size_class1, cov1, mean1, CV_COVAR_ROWS | CV_COVAR_NORMAL);
+
+        MatInfo(mean0);
+        MatInfo(mean1);
+
+        //MatInfo(cov0);
+        //MatInfo(cov1);
+
+
+        // 5. sum + white noise
+        CvMat* covs_whitened = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
+        cvAdd(cov0, cov1, covs_whitened);
+        for(int ii = 0; ii < eigen_dimensions; ii++)
+            CV_MAT_ELEM(*covs_whitened, float, ii, ii) += epsilon;
+        //MatInfo(covs_whitened);
+        
+        // 6. inverse
+        CvMat* covs_inv = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
+        cvInvert(covs_whitened, covs_inv);
+        //MatInfo(covs_inv);
+
+        // 7. subtract means (mean01 = mean1 - mean0)
+        CvMat* mean01 = cvCreateMat(1, eigen_dimensions, CV_32F);
+        cvAddWeighted(mean0, -1, mean1, 1, 0, mean01);
+
+        // 8. compute w = inv_covs * (u_1 - u_0)
+        CvMat* weight = cvCreateMat(1, eigen_dimensions, CV_32F);
+        cvMatMul(mean01, covs_inv, weight);
+
+        // 9. compute fisher scores for u_0 and u_1
+        scores_mean0.push_back(cvDotProduct(weight, mean0));
+        scores_mean1.push_back(cvDotProduct(weight, mean1));
+
+        cout << "Class " << cc << " weight vector is [ ";
+        for (int jj = 0; jj < eigen_dimensions; jj++)
+            cout << CV_MAT_ELEM(*weight, float, 0, jj) << " " << endl;
+        cout << "]" << endl;
+
+        weights.push_back(weight);
     }
-    int size_class0 = idx_class0.size();
-    int size_class1 = idx_class1.size();
-    assert(size_class0 > 0 && size_class1 > 0);
-
-    IplImage* images_class0[size_class0];
-    IplImage* images_class1[size_class1];
-
-    for(int ii = 0; ii < size_class0; ii++)
-        images_class0[ii] = images[idx_class0[ii]];
-    for(int ii = 0; ii < size_class1; ii++)
-        images_class1[ii] = images[idx_class1[ii]];
-
-
-    // 4. compute covariance matrices and means for class 0 (not
-    // selected) and class 1 (selected)
-    CvMat* cov0 = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
-    CvMat* cov1 = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
-
-    CvMat* mean0 = cvCreateMat(eigen_dimensions, 1, CV_32F);
-    CvMat* mean1 = cvCreateMat(eigen_dimensions, 1, CV_32F);
-
-    cvCalcCovarMatrix((const CvArr**)images_class0, size_class0, cov0, mean0, 0);
-    cvCalcCovarMatrix((const CvArr**)images_class1, size_class1, cov1, mean1, 0);
-
-
-    // 5. sum + white noise
-    CvMat* covs_whitened = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
-    cvAdd(cov0, cov1, covs_whitened);
-    for(int ii = 0; ii < eigen_dimensions; ii++)
-        CV_MAT_ELEM(*covs_whitened, float, ii, ii) += epsilon;
-
-    // 6. inverse
-    CvMat* covs_inv = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
-    cvInvert(covs_whitened, covs_inv);
-
-    // 7. subtract means (mean01 = mean1 - mean0)
-    CvMat* mean01 = cvCreateMat(eigen_dimensions, 1, CV_32F);
-    cvAddWeighted(mean0, -1, mean1, 1, 0, mean01);
-
-    // 8. compute w = inv_covs * (u_1 - u_0)
-    CvMat* ww = cvCreateMat(eigen_dimensions, 1, CV_32F);
-    cvMatMul(covs_inv, mean01, ww);
-
 
 
 
@@ -294,7 +334,44 @@ int main( int argc, char** argv )
      *  4. Classify given photo
      ******************************/
 
+    IplImage* test_image = cvLoadImage(image_to_classify, CV_LOAD_IMAGE_GRAYSCALE);
 
+    CvMat* test_features = cvCreateMat(1, eigen_dimensions, CV_32F);
+
+    float temp[eigen_dimensions];
+    cvEigenDecomposite(test_image,               // image to project
+                       eigen_dimensions,         // number of eigen vectors
+                       (void*)eigen_array,       // eigen_vectors
+                       0, 0,                     // ioflags, user callback data
+                       eigen_images[0],          // average image = first eigen_vector
+                       temp);                    // output
+
+    for (size_t jj = 0; jj < eigen_dimensions; jj++)
+        CV_MAT_ELEM(*test_features, float, 0, jj) = temp[jj];
+
+
+    vector<float> scores;
+    float max_score = -1e100;
+    int max_idx = -1;
+    for (int ii = 0; ii < num_classes; ii++) {
+        float test_score = cvDotProduct(weights[ii], test_features);
+
+        float ratio_score = (test_score - scores_mean0[ii]) / (scores_mean1[ii] - scores_mean0[ii]);
+
+        printf("Class %d from %f to %f, score is %f, ratio %f\n",
+               ii, scores_mean0[ii], scores_mean1[ii],
+               test_score, ratio_score);
+
+        scores.push_back(ratio_score);
+
+        if (ratio_score > max_score) {
+            max_score = ratio_score;
+            max_idx = ii;
+        }
+    }
+
+
+    printf("Best class is %d, %s\n", max_idx, class_labels[max_idx].c_str());
 
 
 
@@ -347,7 +424,8 @@ imageInfo (IplImage * image)
         for (jj = 0; jj < min(maxIdx,image->width); ++jj) {
             cout << ii << "," << jj << " " << "(";
             for (cc = 0; cc < nChannels; ++cc) {
-                printf("%.2f", CV_IMAGE_ELEM(image, float, ii, jj*nChannels+cc));
+                //printf("%.2f", CV_IMAGE_ELEM(image, float, ii, jj*nChannels+cc));
+                printf("%d", CV_IMAGE_ELEM(image, char, ii, jj*nChannels+cc));
             }
             cout << ") ";
         }
