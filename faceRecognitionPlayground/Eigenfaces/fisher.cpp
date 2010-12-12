@@ -57,14 +57,16 @@ int main( int argc, char** argv )
     IplImage *frame, *frame_copy = 0;
 
     // Input file name for avi or image file.
-    const char* input_name;
+    const char* subjects_filename;
+    const char* image_to_classify;
     int nn_dimensions;
 
     // Check for the correct usage of the command line
-    if( argc > 1 ) {
-        input_name = argv[1];
+    if( argc > 2 ) {
+        subjects_filename = argv[1];
+        image_to_classify = argv[2];
     } else {
-        fprintf( stderr, "Usage: fisher <list_of_subject_files.txt>\n" );
+        fprintf( stderr, "Usage: fisher <list_of_subject_files.txt> <image_to_classify.jpg>\n" );
         return -1;
     }
 
@@ -73,7 +75,6 @@ int main( int argc, char** argv )
     
     // Create a new named window with title: result
     cvNamedWindow( "result", 1 );
-
 
 
 
@@ -92,7 +93,7 @@ int main( int argc, char** argv )
     /* assume it is a text file containing the
        list of the single class filenames to be processed - one per line */
     int current_class_id = 1;
-    FILE* class_all_file = fopen( input_name, "rt" );
+    FILE* class_all_file = fopen( subjects_filename, "rt" );
     if( class_all_file ) {
         char buf[1000+1];
         
@@ -149,7 +150,7 @@ int main( int argc, char** argv )
         // Close the file
         fclose(class_all_file);
     } else {
-        printf("ERROR: Failure reading class file '%s'!\n", input_name);
+        printf("ERROR: Failure reading class file '%s'!\n", subjects_filename);
     }
 
 
@@ -169,7 +170,7 @@ int main( int argc, char** argv )
 
 
     /******************************
-     *  3. Fisher awesomeness...
+     *  3. Compute fisher weight vector
      ******************************/
 
 
@@ -285,6 +286,17 @@ int main( int argc, char** argv )
     // 8. compute w = inv_covs * (u_1 - u_0)
     CvMat* ww = cvCreateMat(eigen_dimensions, 1, CV_32F);
     cvMatMul(covs_inv, mean01, ww);
+
+
+
+
+    /******************************
+     *  4. Classify given photo
+     ******************************/
+
+
+
+
 
     return 0;
 
