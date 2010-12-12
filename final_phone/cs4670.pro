@@ -8,10 +8,12 @@ TARGET = face
 CONFIG += debug warn_on
 
 HEADERS += OverlayWidget.h CameraThread.h Framebuffer.h N900Helpers.h \
-    CameraWidget.h
+    CameraWidget.h \
+    FaceDetector.h
     
 SOURCES += N900Main.cpp OverlayWidget.cpp CameraThread.cpp Framebuffer.cpp N900Helpers.cpp \
-    CameraWidget.cpp
+    CameraWidget.cpp \
+    FaceDetector.cpp
 
 CONFIG += qt 
 LIBS += -lpthread -Llib -ljpeg -lFCam -lcv -lcvaux -lhighgui -lcxcore
