@@ -7,7 +7,7 @@ class FaceDetector
 {
   public:
     FaceDetector();
-    ~FaceDetector();
+    ~FaceDetector() {}
     void processImage(IplImage* img);
 };
 

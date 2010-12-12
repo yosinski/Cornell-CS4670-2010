@@ -58,7 +58,6 @@ class CameraThread : public QThread {
 
   protected:
     void run();
-    void process_image (IplImage* img);
 
   private:
     bool keepGoing;

@@ -6,12 +6,6 @@ FaceDetector::FaceDetector()
   //TODO Put one-time loading stuff here
 }
 
-FaceDetector::~FaceDetector()
-{
-  printf("FaceDetector - Destructor\n");
-  //TODO Put closing stuff here
-}
-
 void FaceDetector::processImage(IplImage* img)
 {
   printf("FaceDetector - Process Image\n");

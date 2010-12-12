@@ -14,12 +14,15 @@
 
 #include "Framebuffer.h"
 #include "N900Helpers.h"
+#include "FaceDetector.h"
 
 using namespace std;
 
 namespace Plat = FCam::N900;
 
 void CameraThread::run() {
+    
+    FaceDetector* face = new FaceDetector();
     
     // tell the sensor that the flash and the lens will be tagging
     // frames that come back from it
@@ -126,7 +129,7 @@ void CameraThread::run() {
                 IplImage * img = capture (f);
                 
                 overlay->startProcess ();
-                process_image (img);
+                face->processImage(img);
                 overlay->endProcess ();
                 
                 sensor.stopStreaming();
@@ -183,9 +186,4 @@ void CameraThread::SetBGR()
     render = render_bgr24;
     save = save_bgr24;
     Framebuffer::GetInstance().SetBGR();
-}
-
-void CameraThread::process_image(IplImage* img)
-{
-  sleep(1);
 }
