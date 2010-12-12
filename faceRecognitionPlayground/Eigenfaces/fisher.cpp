@@ -211,6 +211,9 @@ int main( int argc, char** argv )
     printf("Projecting all images onto eigenvectors\n");
     int eigen_dimensions = eigen_images.size() - 1;      // first is average
 
+    // [JBY] use this to control how many dimensions we use
+    eigen_dimensions = 15;
+
     IplImage* eigen_array[eigen_dimensions];
     for(int ii = 0; ii < eigen_dimensions; ii++) {
         eigen_array[ii] = eigen_images[ii+1];
