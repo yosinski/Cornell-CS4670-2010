@@ -43,8 +43,9 @@ using namespace std;
 
 
 // diagonal whitening for covariance matrix
-float epsilon = .01;
-
+float epsilon = 1.0;
+int default_max_eigen_dimensions = 60;
+int max_eigen_dimensions = default_max_eigen_dimensions;
 
 // Create memory for calculations
 static CvMemStorage* storage = 0;
@@ -58,7 +59,11 @@ int main( int argc, char** argv )
     const char* subjects_filename;
     const char* image_to_classify;
 
-    // Check for the correct usage of the command line
+    // Process command line arguments
+    if( argc > 3 ) {
+        max_eigen_dimensions = atoi(argv[3]);
+    }
+
     if( argc > 2 ) {
         subjects_filename = argv[1];
         image_to_classify = argv[2];
@@ -212,7 +217,9 @@ int main( int argc, char** argv )
     int eigen_dimensions = eigen_images.size() - 1;      // first is average
 
     // [JBY] use this to control how many dimensions we use
-    eigen_dimensions = 15;
+    eigen_dimensions = min(max_eigen_dimensions, eigen_dimensions);
+
+    printf("Using first %d eigen vectors\n", eigen_dimensions);
 
     IplImage* eigen_array[eigen_dimensions];
     for(int ii = 0; ii < eigen_dimensions; ii++) {
@@ -348,14 +355,17 @@ int main( int argc, char** argv )
     vector<float> scores;
     float max_score = -1e100;
     int max_idx = -1;
+    printf("%d ", eigen_dimensions);
     for (int ii = 0; ii < num_classes; ii++) {
         float test_score = cvDotProduct(weights[ii], test_features);
 
         float ratio_score = (test_score - scores_mean0[ii]) / (scores_mean1[ii] - scores_mean0[ii]);
 
-        printf("Class %d, %s from %f to %f, score is %f, ratio %f\n",
-               ii, class_labels[ii].c_str(), scores_mean0[ii],
-               scores_mean1[ii], test_score, ratio_score);
+        // printf("Class %d, %s from %f to %f, score is %f, ratio \t%f\n",
+        //        ii, class_labels[ii].c_str(), scores_mean0[ii],
+        //        scores_mean1[ii], test_score, ratio_score);
+
+        printf("%f ", ratio_score);
 
         scores.push_back(ratio_score);
 
@@ -364,6 +374,7 @@ int main( int argc, char** argv )
             max_idx = ii;
         }
     }
+    printf("\n");
 
 
     printf("Best class is %d, %s\n", max_idx, class_labels[max_idx].c_str());
