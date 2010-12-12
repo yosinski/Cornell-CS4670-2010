@@ -5,6 +5,7 @@
 #include "opencv/highgui.h"
 #include "opencv/cvaux.h"
 
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -49,17 +50,30 @@ int main( int argc, char** argv )
     // Create a new named window with title: result
     cvNamedWindow( "result", 1 );
 
-    std::vector<IplImage*> images;
-    std::vector<char*> labels;
+
+
+
+    /******************************
+     *  1. Load class_*.txt files and images
+     ******************************/
+
+    std::vector< IplImage* >  images;
+    std::vector< int >        class_ids;
+    std::vector< std::string >     class_labels;
+    std::vector< std::string >     image_labels;
+
+    //std::vector< IplImage* >               temp_class_images;
+    //std::vector< string >                  temp_labels;
 
     /* assume it is a text file containing the
-       list of the image filenames to be processed - one per line */
-    FILE* f = fopen( input_name, "rt" );
-    if( f ) {
+       list of the single class filenames to be processed - one per line */
+    int current_class_id = 1;
+    FILE* class_all_file = fopen( input_name, "rt" );
+    if( class_all_file ) {
         char buf[1000+1];
         
         // Get the line from the file
-        while( fgets( buf, 1000, f ) ) {
+        while( fgets( buf, 1000, class_all_file ) ) {
 
             // Remove the spaces if any, and clean up the name
             int len = (int)strlen(buf);
@@ -67,22 +81,86 @@ int main( int argc, char** argv )
                 len--;
             buf[len] = '\0';
 
-            // Load the image from the filename present in the buffer
-            IplImage* image = cvLoadImage( buf, CV_LOAD_IMAGE_GRAYSCALE );
-            
-            // If the image was loaded succesfully, then:
-            if( image ) {
-                // Add image to vector
-                images.push_back(image);
-                char* str = (char*)malloc(sizeof(char)*100);
-                memcpy(str, buf, 100);
-                labels.push_back(str);
-            } else
-                printf("failed to load image: %s\n", buf);
+            std::string class_label(buf);
+
+            //temp_class_images.clear();
+            //temp_labels.clear();
+
+            FILE* class_subject_file = fopen( buf, "rt" );
+
+            if (class_subject_file) {
+                // Get the line from the file
+                while( fgets( buf, 1000, class_subject_file ) ) {
+                    // Remove the spaces if any, and clean up the name
+                    int len = (int)strlen(buf);
+                    while( len > 0 && isspace(buf[len-1]) )
+                        len--;
+                    buf[len] = '\0';
+
+                    // Load the image from the filename present in the buffer
+                    IplImage* image = cvLoadImage( buf, CV_LOAD_IMAGE_GRAYSCALE );
+
+                    // If the image was loaded succesfully, then:
+                    if( ! image ) {
+                        printf("ERROR: Failed to load image: %s\n", buf);
+                    }
+
+                    // 1. save class label (e.g. class_subject01.txt)
+                    class_labels.push_back(class_label);
+                    // 2. save class id (e.g. 1)
+                    class_ids.push_back(current_class_id);
+                    // 3. save image label
+                    image_labels.push_back(std::string(buf));
+                    // 4. save image
+                    images.push_back(image);
+                }
+            } else {
+                printf("ERROR: Failed to read subject file '%s'!\n", buf);
+            }
+
+            fclose(class_subject_file);
+        
+            current_class_id++;
         }
         // Close the file
-        fclose(f);
+        fclose(class_all_file);
+    } else {
+        printf("ERROR: Failure reading class file '%s'!\n", input_name);
     }
+
+
+
+    /******************************
+     *  2. Show images loaded
+     ******************************/
+
+    if (false) {
+        for (int ii = 0; ii < images.size(); ii++) {
+            printf("showing image %d\n", ii);
+            cvShowImage("result", images[ii]);
+            cvWaitKey(0);
+        }
+    }
+
+
+
+    /******************************
+     *  3. Fisher awesomeness...
+     ******************************/
+
+    int selected_class_id = 1;
+
+    // 1. compute cov class 0 (not selected)
+    // 2. compute cov class 1 (selected)
+    // 3. sum + white noise
+    // 4. inverse
+    // 5. compute mean of class 0 (not selected)
+    // 6. compute mean of class 1 (selected)
+    // 7. compute w = inv_covs * (u_1 - u_0)
+
+    return 0;
+
+
     IplImage* imageArray[images.size()];
     IplImage* eigenArray[images.size()-1];
     
@@ -160,8 +238,8 @@ int main( int argc, char** argv )
 
     //save labels to disk
     FILE* lf = fopen( "labels.txt", "w" );
-    for(int i = 0; i < labels.size(); i++) 
-      fprintf(lf, "%s\n", labels[i]);
+    for(int i = 0; i < class_labels.size(); i++) 
+      fprintf(lf, "%s\n", class_labels[i]);
     fclose(lf);
 
     //cv::flann::Index::Index flannIndex ( features, cv::flann::KDTreeIndexParams () );

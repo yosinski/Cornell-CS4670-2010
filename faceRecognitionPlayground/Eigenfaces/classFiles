@@ -1,0 +1,34 @@
+#! /usr/bin/env python
+
+# Makes the required class files for, e.g., fisher
+
+import os
+import pdb
+
+dir = 'yalefaces'
+
+results = os.listdir(dir)
+
+results = filter(lambda x: x.startswith('Result0.'), results)
+results = filter(lambda x: x.endswith('.jpg'), results)
+
+results = [x[8:] for x in results]
+
+subjects = set([x.split('.')[0] for x in results])
+subjects = list(subjects)
+subjects.sort()
+
+print 'Subjects:', subjects
+
+# write subjects file
+ff = open(dir + '/class_all.txt', 'w')
+ff.write('\n'.join(['class_%s.txt' % ss for ss in subjects]))
+ff.close()
+
+for subject in subjects:
+    thisSubj = filter(lambda x: x.startswith(subject), results)
+    ff = open(dir + '/class_%s.txt' % subject, 'w')
+    ff.write('\n'.join(['Result0.%s' % x for x in thisSubj]))
+    ff.close()
+
+print 'wrote subject files in', dir
