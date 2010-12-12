@@ -41,6 +41,7 @@ void matInfo (cv::Mat);
 void autoScaleMat   (CvMat *,    CvMat *,    float, float);
 void autoScaleImage (IplImage *, IplImage *, float, float);
 void matToImg(const CvMat *, IplImage *);
+void reshapeAndSave(const char*, const CvMat*, CvSize);
 
 using namespace std;
 
@@ -319,37 +320,6 @@ int main( int argc, char** argv )
         cvCalcCovarMatrix((const CvArr**)&features_class1, size_class1, cov1, mean1, CV_COVAR_ROWS | CV_COVAR_NORMAL);
 
 
-
-
-        // reproject and save mean class0 and class1 images
-
-        CvMat * tmp_mat = cvCreateMat(1, num_pixels, CV_32F);
-        cvMatMul(mean0, stacked_eigen_vectors, tmp_mat);
-
-
-
-        CvMat fat_header, *fat;
-        fat = cvReshape(tmp_mat, &fat_header, 0, images[0]->height);
-
-        IplImage* fooF = cvCreateImage(cvGetSize(images[0]), IPL_DEPTH_32F, 1);
-        matToImg(fat, fooF);
-
-        IplImage* fooC = cvCreateImage(cvGetSize(images[0]), IPL_DEPTH_8U, 1);
-        autoScaleImage(fooF, fooC, 0, 255);
-
-        sprintf(tmp_buf, "class_%02d_%d.png", cc, 0);
-
-        cvSaveImage(tmp_buf, fooC);
-        cvReleaseImage(&fooC);
-        cvReleaseImage(&fooF);
-
-
-
-
-
-
-
-
         // 5. sum + white noise
         CvMat* covs_whitened = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
         cvAdd(cov0, cov1, covs_whitened);
@@ -368,7 +338,22 @@ int main( int argc, char** argv )
         CvMat* weight = cvCreateMat(1, eigen_dimensions, CV_32F);
         cvMatMul(mean01, covs_inv, weight);
 
-        // 9. compute fisher scores for u_0 and u_1
+        // 9. reproject and save mean class0 and class1 images
+        CvMat * tmp_mat = cvCreateMat(1, num_pixels, CV_32F);
+
+        cvMatMul(mean0, stacked_eigen_vectors, tmp_mat);
+        sprintf(tmp_buf, "class_%02d_%d.jpg", cc, 0);
+        reshapeAndSave(tmp_buf, tmp_mat, cvGetSize(images[0]));
+
+        cvMatMul(mean1, stacked_eigen_vectors, tmp_mat);
+        sprintf(tmp_buf, "class_%02d_%d.jpg", cc, 1);
+        reshapeAndSave(tmp_buf, tmp_mat, cvGetSize(images[0]));
+
+        cvMatMul(weight, stacked_eigen_vectors, tmp_mat);
+        sprintf(tmp_buf, "class_%02d_%s.jpg", cc, "w");
+        reshapeAndSave(tmp_buf, tmp_mat, cvGetSize(images[0]));
+
+        // 10. compute fisher scores for u_0 and u_1
         scores_mean0.push_back(cvDotProduct(weight, mean0));
         scores_mean1.push_back(cvDotProduct(weight, mean1));
 
@@ -564,7 +549,7 @@ void autoScaleImage (IplImage* in, IplImage* out, float min_goal, float max_goal
 
     float scale = max_val == min_val ? 1.0 : (max_goal - min_goal) / (max_val - min_val);
     float shift = (min_goal - min_val) * scale;
-    printf("min: %f, max: %f, scale: %f, shift: %f\n", min_val, max_val, scale, shift);
+    //printf("min: %f, max: %f, scale: %f, shift: %f\n", min_val, max_val, scale, shift);
     cvConvertScale(in, out, scale, shift);
 }
 
@@ -579,4 +564,22 @@ void matToImg(const CvMat * in, IplImage * out)
             //printf("  now is %f\n", CV_IMAGE_ELEM(out, float, ii, jj));
         }
     }
+}
+
+
+
+void reshapeAndSave(const char* filename, const CvMat* mat, CvSize destination_size)
+{
+    CvMat fat_header, *fat;
+    fat = cvReshape(mat, &fat_header, 0, destination_size.height);
+
+    IplImage* fooF = cvCreateImage(destination_size, IPL_DEPTH_32F, 1);
+    matToImg(fat, fooF);
+
+    IplImage* fooC = cvCreateImage(destination_size, IPL_DEPTH_8U, 1);
+    autoScaleImage(fooF, fooC, 0, 255);
+
+    cvSaveImage(filename, fooC);
+    cvReleaseImage(&fooC);
+    cvReleaseImage(&fooF);
 }
