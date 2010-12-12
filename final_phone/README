@@ -1,0 +1,10 @@
+To use:
+
+1) create makefile:
+  mad qmake
+  
+2) make:
+  mad make
+
+This should generate an executable 'face', which can be scp'd to the phone.
+
