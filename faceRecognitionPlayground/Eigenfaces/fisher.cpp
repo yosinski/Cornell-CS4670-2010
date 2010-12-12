@@ -289,24 +289,16 @@ int main( int argc, char** argv )
         cvCalcCovarMatrix((const CvArr**)&features_class0, size_class0, cov0, mean0, CV_COVAR_ROWS | CV_COVAR_NORMAL);
         cvCalcCovarMatrix((const CvArr**)&features_class1, size_class1, cov1, mean1, CV_COVAR_ROWS | CV_COVAR_NORMAL);
 
-        MatInfo(mean0);
-        MatInfo(mean1);
-
-        //MatInfo(cov0);
-        //MatInfo(cov1);
-
 
         // 5. sum + white noise
         CvMat* covs_whitened = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
         cvAdd(cov0, cov1, covs_whitened);
         for(int ii = 0; ii < eigen_dimensions; ii++)
             CV_MAT_ELEM(*covs_whitened, float, ii, ii) += epsilon;
-        //MatInfo(covs_whitened);
         
         // 6. inverse
         CvMat* covs_inv = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
         cvInvert(covs_whitened, covs_inv);
-        //MatInfo(covs_inv);
 
         // 7. subtract means (mean01 = mean1 - mean0)
         CvMat* mean01 = cvCreateMat(1, eigen_dimensions, CV_32F);
@@ -320,10 +312,10 @@ int main( int argc, char** argv )
         scores_mean0.push_back(cvDotProduct(weight, mean0));
         scores_mean1.push_back(cvDotProduct(weight, mean1));
 
-        cout << "Class " << cc << " weight vector is [ ";
-        for (int jj = 0; jj < eigen_dimensions; jj++)
-            cout << CV_MAT_ELEM(*weight, float, 0, jj) << " " << endl;
-        cout << "]" << endl;
+        // cout << "Class " << cc << " weight vector is [ ";
+        // for (int jj = 0; jj < eigen_dimensions; jj++)
+        //     cout << CV_MAT_ELEM(*weight, float, 0, jj) << " " << endl;
+        // cout << "]" << endl;
 
         weights.push_back(weight);
     }
@@ -358,9 +350,9 @@ int main( int argc, char** argv )
 
         float ratio_score = (test_score - scores_mean0[ii]) / (scores_mean1[ii] - scores_mean0[ii]);
 
-        printf("Class %d from %f to %f, score is %f, ratio %f\n",
-               ii, scores_mean0[ii], scores_mean1[ii],
-               test_score, ratio_score);
+        printf("Class %d, %s from %f to %f, score is %f, ratio %f\n",
+               ii, class_labels[ii].c_str(), scores_mean0[ii],
+               scores_mean1[ii], test_score, ratio_score);
 
         scores.push_back(ratio_score);
 
