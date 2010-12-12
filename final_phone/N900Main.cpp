@@ -19,7 +19,13 @@
 /* using an fbdev overlay.                                 */
 /***********************************************************/
 
+#include "FaceDetector.h"
+
+FaceDetector* globalFaceDetector;
+
 int main(int argc, char **argv) {
+    globalFaceDetector = new FaceDetector();
+
     QApplication app(argc, argv);
 
     // Make the main window and a layout for it

@@ -20,9 +20,9 @@ using namespace std;
 
 namespace Plat = FCam::N900;
 
+extern FaceDetector* globalFaceDetector;
+
 void CameraThread::run() {
-    
-    FaceDetector* face = new FaceDetector();
     
     // tell the sensor that the flash and the lens will be tagging
     // frames that come back from it
@@ -129,7 +129,7 @@ void CameraThread::run() {
                 IplImage * img = capture (f);
                 
                 overlay->startProcess ();
-                face->processImage(img);
+                globalFaceDetector->processImage(img);
                 overlay->endProcess ();
                 
                 sensor.stopStreaming();
