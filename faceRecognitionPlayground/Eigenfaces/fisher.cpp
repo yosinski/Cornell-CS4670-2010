@@ -17,6 +17,30 @@
 #include <ctype.h>
 #include <vector>
 
+#define DEBUG
+#ifdef DEBUG
+#define ImageInfo(x)                                \
+    cout << "\n" << __FILE__ << ":" << __LINE__     \
+         << " imageInfo(" << #x << ")" << endl;     \
+    imageInfo(x);                                   \
+    saveImage(__FILE__, __LINE__, #x, x);
+#else
+#define ImageInfo(x)
+#endif
+
+// Forward declarations
+void imageInfo (IplImage *);
+void saveImage (char *, int, char *, IplImage *);
+void matInfo (CvMat *);
+void matInfo (cv::Mat);
+
+using namespace std;
+
+
+// diagonal whitening for covariance matrix
+float epsilon = .01;
+
+
 // Create memory for calculations
 static CvMemStorage* storage = 0;
 
@@ -57,13 +81,13 @@ int main( int argc, char** argv )
      *  1. Load class_*.txt files and images
      ******************************/
 
-    std::vector< IplImage* >  images;
-    std::vector< int >        class_ids;
-    std::vector< std::string >     class_labels;
-    std::vector< std::string >     image_labels;
+    vector< IplImage* >  images;
+    vector< int >        class_ids;
+    vector< string >     class_labels;
+    vector< string >     image_labels;
 
-    //std::vector< IplImage* >               temp_class_images;
-    //std::vector< string >                  temp_labels;
+    //vector< IplImage* >               temp_class_images;
+    //vector< string >                  temp_labels;
 
     /* assume it is a text file containing the
        list of the single class filenames to be processed - one per line */
@@ -81,7 +105,7 @@ int main( int argc, char** argv )
                 len--;
             buf[len] = '\0';
 
-            std::string class_label(buf);
+            string class_label(buf);
 
             //temp_class_images.clear();
             //temp_labels.clear();
@@ -110,7 +134,7 @@ int main( int argc, char** argv )
                     // 2. save class id (e.g. 1)
                     class_ids.push_back(current_class_id);
                     // 3. save image label
-                    image_labels.push_back(std::string(buf));
+                    image_labels.push_back(string(buf));
                     // 4. save image
                     images.push_back(image);
                 }
@@ -148,15 +172,119 @@ int main( int argc, char** argv )
      *  3. Fisher awesomeness...
      ******************************/
 
+
+    // 1. Load eigenvectors from files
+    vector< IplImage* > eigen_images;
+
+    printf("Loading eigenvectors from eigenvectors.yml... ");
+    CvFileStorage* fs2 = cvOpenFileStorage("eigenvectors.yml", NULL, CV_STORAGE_READ);
+    char vectorname[50];
+    CvFileNode* vectorloc = cvGetFileNodeByName(fs2, NULL, "vector0");
+    for(int i = 1; vectorloc != NULL; i++) {
+      eigen_images.push_back((IplImage*)cvRead(fs2, vectorloc, &cvAttrList(0,0)));
+      //printf("pushed %s\n", vectorname);
+      sprintf(vectorname, "vector%d", i);
+      vectorloc = cvGetFileNodeByName(fs2, NULL, vectorname);
+    }
+    //cvReleaseFileStorage(&fs2); This may delete the images
+    printf("done.\n%d Eigenvectors (and 1 average) loaded.\n", eigen_images.size()-1);
+
+    if (false) {
+        for (int ii = 0; ii < eigen_images.size(); ii++) {
+            printf("showing eigen image %d\n", ii);
+            //cvConvertScale(eigen_images[ii], eigen_images[ii], 128, 1);
+            cvShowImage("result", eigen_images[ii]);
+            cout << CV_IMAGE_ELEM(eigen_images[ii], float, 10, 10) << endl;
+            cvWaitKey(0);
+        }
+    }
+
+
     int selected_class_id = 1;
 
-    // 1. compute cov class 0 (not selected)
-    // 2. compute cov class 1 (selected)
-    // 3. sum + white noise
-    // 4. inverse
-    // 5. compute mean of class 0 (not selected)
-    // 6. compute mean of class 1 (selected)
-    // 7. compute w = inv_covs * (u_1 - u_0)
+    // 2. Project all images onto eigen vectors
+    int eigen_dimensions = eigen_images.size() - 1;      // first is average
+
+    IplImage* eigen_array[eigen_dimensions];
+    for(int ii = 0; ii < eigen_dimensions; ii++) {
+        eigen_array[ii] = eigen_images[ii+1];
+    }
+
+    //cv::Mat features(images.size(), eigen_dimensions, CV_32F);
+
+    CvMat* features;
+    features = cvCreateMat(images.size(), eigen_dimensions, CV_32F);
+
+
+    float data[eigen_dimensions];
+    for (int ii = 0; ii < images.size(); ii++) {
+        cvEigenDecomposite(images[ii],               // image to project
+                           eigen_dimensions,         // number of eigen vectors
+                           (void*)eigen_array,       // eigen_vectors (starts at 1)
+                           0, 0,                     // ioflags, user callback data
+                           eigen_images[0],          // average image = first eigen_vector
+                           data);                    // output
+
+        for (size_t jj = 0; jj < eigen_dimensions; jj++) {
+            //features.at<float>( (int)ii, (int)jj ) = data[jj];
+            CV_MAT_ELEM(*features, float, ii, jj) = data[jj];
+        }
+    }
+
+    //matInfo(features);
+
+
+
+    // 3. Sort images into arrays for each class
+    vector<int> idx_class0, idx_class1;
+    for (int ii = 0; ii < images.size(); ii++) {
+        if (class_ids[ii] == selected_class_id)
+            idx_class1.push_back(ii);
+        else
+            idx_class0.push_back(ii);
+    }
+    int size_class0 = idx_class0.size();
+    int size_class1 = idx_class1.size();
+    assert(size_class0 > 0 && size_class1 > 0);
+
+    IplImage* images_class0[size_class0];
+    IplImage* images_class1[size_class1];
+
+    for(int ii = 0; ii < size_class0; ii++)
+        images_class0[ii] = images[idx_class0[ii]];
+    for(int ii = 0; ii < size_class1; ii++)
+        images_class1[ii] = images[idx_class1[ii]];
+
+
+    // 4. compute covariance matrices and means for class 0 (not
+    // selected) and class 1 (selected)
+    CvMat* cov0 = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
+    CvMat* cov1 = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
+
+    CvMat* mean0 = cvCreateMat(eigen_dimensions, 1, CV_32F);
+    CvMat* mean1 = cvCreateMat(eigen_dimensions, 1, CV_32F);
+
+    cvCalcCovarMatrix((const CvArr**)images_class0, size_class0, cov0, mean0, 0);
+    cvCalcCovarMatrix((const CvArr**)images_class1, size_class1, cov1, mean1, 0);
+
+
+    // 5. sum + white noise
+    CvMat* covs_whitened = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
+    cvAdd(cov0, cov1, covs_whitened);
+    for(int ii = 0; ii < eigen_dimensions; ii++)
+        CV_MAT_ELEM(*covs_whitened, float, ii, ii) += epsilon;
+
+    // 6. inverse
+    CvMat* covs_inv = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
+    cvInvert(covs_whitened, covs_inv);
+
+    // 7. subtract means (mean01 = mean1 - mean0)
+    CvMat* mean01 = cvCreateMat(eigen_dimensions, 1, CV_32F);
+    cvAddWeighted(mean0, -1, mean1, 1, 0, mean01);
+
+    // 8. compute w = inv_covs * (u_1 - u_0)
+    CvMat* ww = cvCreateMat(eigen_dimensions, 1, CV_32F);
+    cvMatMul(covs_inv, mean01, ww);
 
     return 0;
 
@@ -202,7 +330,7 @@ int main( int argc, char** argv )
 
     //populate flann
     printf("FLANN DIMS: %d, %d\n", images.size(), min(projection_dims, nn_dimensions));
-    cv::Mat features ( images.size (), min(projection_dims, nn_dimensions), CV_32F );
+    cv::Mat features2 ( images.size (), min(projection_dims, nn_dimensions), CV_32F );
     
     for ( size_t i = 0; i < images.size (); ++i ) {
         float data[projection_dims];
@@ -213,7 +341,7 @@ int main( int argc, char** argv )
                            avgImage, //root eigen vector
                            data);
         for ( size_t j = 0; j < min(projection_dims, nn_dimensions); ++j ) {
-            features.at<float>( ( int )i, ( int )j ) = data[j];
+            features2.at<float>( ( int )i, ( int )j ) = data[j];
         }
         //printf("Eigenvector Coefficents:\n");
         //for(int j = 0; j < projection_dims; j++) //-1 since one less eigenvalue than images
@@ -223,11 +351,11 @@ int main( int argc, char** argv )
 
     //Save neighbor data to disk
     CvFileStorage* fs = cvOpenFileStorage("nn.yml", NULL, CV_STORAGE_WRITE);
-    cvWrite(fs, "data", &((CvMat)features), cvAttrList(0,0));
+    cvWrite(fs, "data", &((CvMat)features2), cvAttrList(0,0));
     cvReleaseFileStorage(&fs);
     
     //Save eigenvectors to disk
-    CvFileStorage* fs2 = cvOpenFileStorage("eigenvectors.yml", NULL, CV_STORAGE_WRITE);
+    fs2 = cvOpenFileStorage("eigenvectors.yml", NULL, CV_STORAGE_WRITE);
     cvWrite(fs2, "vector0", avgImage, cvAttrList(0,0));
     char filename[50];
     for(int i = 0; i < projection_dims; i++) {
@@ -242,7 +370,7 @@ int main( int argc, char** argv )
       fprintf(lf, "%s\n", class_labels[i]);
     fclose(lf);
 
-    //cv::flann::Index::Index flannIndex ( features, cv::flann::KDTreeIndexParams () );
+    //cv::flann::Index::Index flannIndex ( features2, cv::flann::KDTreeIndexParams () );
     //flannIndex.save("flann.dat");
     
 
@@ -286,4 +414,94 @@ int main( int argc, char** argv )
     printf("Done.\n");
     // return 0 to indicate successfull execution of the program
     return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// Print out image information and one corner of image
+void
+imageInfo (IplImage * image)
+{
+    cout << "Image info:" << endl;
+    cout << "    nSize:          " << image->nSize          << endl;
+    cout << "    ID:             " << image->ID             << endl;
+    cout << "    nChannels:      " << image->nChannels      << endl;
+    cout << "    alphaChannel:   " << image->alphaChannel   << endl;
+    cout << "    depth:          " << image->depth          << endl;
+    cout << "    colorModel[4]:  " << image->colorModel[0] << image->colorModel[1]
+         << image->colorModel[2] << image->colorModel[3]  << endl;
+    cout << "    channelSeq[4]:  " << image->channelSeq[0] << image->channelSeq[1]
+         << image->channelSeq[2] << image->channelSeq[3] << endl;
+    cout << "    dataOrder:      " << image->dataOrder      << endl;
+    cout << "    origin:         " << image->origin         << endl;
+    cout << "    align:          " << image->align          << endl;
+    cout << "    width:          " << image->width          << endl;
+    cout << "    height:         " << image->height         << endl;
+    cout << "    imageSize:      " << image->imageSize      << endl;
+    cout << "    widthStep:      " << image->widthStep      << endl;
+    cout << "    BorderMode[4]:  " << image->BorderMode[4]  << endl;
+    cout << "    BorderConst[4]: " << image->BorderConst[4] << endl;
+
+    int ii, jj, cc;
+    int nChannels = image->nChannels;
+    
+    int maxIdx = 8;
+
+    for (ii = 0; ii < min(maxIdx,image->height); ++ii) {
+        for (jj = 0; jj < min(maxIdx,image->width); ++jj) {
+            cout << ii << "," << jj << " " << "(";
+            for (cc = 0; cc < nChannels; ++cc) {
+                printf("%.2f", CV_IMAGE_ELEM(image, float, ii, jj*nChannels+cc));
+            }
+            cout << ") ";
+        }
+        cout << endl;
+    }
+}
+
+void saveImage(char * file, int line, char * name, IplImage * image)
+{
+    char buffer [50];
+    //sprintf (buffer, "%s_%03d_%s.png", file, line, name);
+    sprintf (buffer, "line_%03d_%s.png", line, name);
+
+    IplImage* temp = cvCloneImage(image);
+    cvConvertScale(image, temp, 255, 0);
+    cvSaveImage(buffer, temp);
+    cvReleaseImage(&temp);
+}
+
+// Print out matrix information and matrix itself
+void
+matInfo (cv::Mat mat)
+{
+    matInfo((CvMat *) &mat);
+}
+
+// Print out matrix information and matrix itself
+void
+matInfo (CvMat * mat)
+{
+    cout << "Matrix info:" << endl;
+    cout << "    rows:           " << mat->rows             << endl;
+    cout << "    cols:           " << mat->cols             << endl;
+
+    int ii, jj;
+
+    for (ii = 0; ii < mat->rows; ++ii) {
+        cout <<  "[ ";
+        for (jj = 0; jj < mat->cols; ++jj) {
+            cout << CV_MAT_ELEM(*mat, float, ii, jj) << "   ";
+        }
+        cout <<  " ]" << endl;
+    }
 }
