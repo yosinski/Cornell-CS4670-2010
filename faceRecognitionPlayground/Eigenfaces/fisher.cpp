@@ -355,17 +355,17 @@ int main( int argc, char** argv )
     vector<float> scores;
     float max_score = -1e100;
     int max_idx = -1;
-    printf("%d ", eigen_dimensions);
+    //printf("%d ", eigen_dimensions);
     for (int ii = 0; ii < num_classes; ii++) {
         float test_score = cvDotProduct(weights[ii], test_features);
 
         float ratio_score = (test_score - scores_mean0[ii]) / (scores_mean1[ii] - scores_mean0[ii]);
 
-        // printf("Class %d, %s from %f to %f, score is %f, ratio \t%f\n",
-        //        ii, class_labels[ii].c_str(), scores_mean0[ii],
-        //        scores_mean1[ii], test_score, ratio_score);
-
-        printf("%f ", ratio_score);
+        printf("Class %d, %s from %f to %f, score is %f, ratio %f\n",
+               ii, class_labels[ii].c_str(), scores_mean0[ii],
+               scores_mean1[ii], test_score, ratio_score);
+        
+        //printf("%f ", ratio_score);
 
         scores.push_back(ratio_score);
 
@@ -374,8 +374,8 @@ int main( int argc, char** argv )
             max_idx = ii;
         }
     }
-    printf("\n");
-
+    //printf("\n");
+    
 
     printf("Best class is %d, %s\n", max_idx, class_labels[max_idx].c_str());
 
