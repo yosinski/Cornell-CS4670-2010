@@ -16,6 +16,7 @@ class FaceDetector
   private:
     CvHaarClassifierCascade* cascade;  
     CvMemStorage* haarstorage;
+    CvMemStorage* fishstorage;
     char* findLabel(IplImage* face);
     std::vector<Face*> findFaces(IplImage* img);
     void markAndLabel(IplImage* img, CvRect *square, char* label);

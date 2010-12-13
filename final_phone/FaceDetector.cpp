@@ -8,6 +8,7 @@ FaceDetector::FaceDetector()
   if(!cascade)
     printf("***ERROR: Failed to load Haar Cascade!\n");
   haarstorage = cvCreateMemStorage(0);
+  fishstorage = cvCreateMemStorage(0);
 }
 
 void FaceDetector::processImage(IplImage* img)
