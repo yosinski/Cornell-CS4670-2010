@@ -38,6 +38,10 @@ void imageInfo (IplImage *);
 void saveImage (char *, int, char *, IplImage *);
 void matInfo (CvMat *);
 void matInfo (cv::Mat);
+void autoScaleMat   (CvMat *,    CvMat *,    float, float);
+void autoScaleImage (IplImage *, IplImage *, float, float);
+void matToImg(const CvMat *, IplImage *);
+void reshapeAndSave(const char*, const CvMat*, CvSize);
 
 using namespace std;
 
@@ -51,6 +55,9 @@ int max_eigen_dimensions = default_max_eigen_dimensions;
 static CvMemStorage* storage = 0;
 
 int min(int a, int b) { return a > b ? b : a; }
+int max(int a, int b) { return a > b ? a : b; }
+float min(float a, float b) { return a > b ? b : a; }
+float max(float a, float b) { return a > b ? a : b; }
 
 // Main function, defines the entry point for the program.
 int main( int argc, char** argv )
@@ -96,6 +103,7 @@ int main( int argc, char** argv )
        list of the single class filenames to be processed - one per line */
     int num_classes = 0;  // one more than the highest numbered class
     FILE* class_all_file = fopen( subjects_filename, "rt" );
+    char tmp_buf[1000+1];
     if( class_all_file ) {
         char buf[1000+1];
         char buf2[1000+1];
@@ -173,6 +181,7 @@ int main( int argc, char** argv )
         for (int ii = 0; ii < images.size(); ii++) {
             printf("showing image %d\n", ii);
             cvShowImage("result", images[ii]);
+            //cvSaveImage("result_img.jpg", images[ii]);
             cvWaitKey(0);
         }
     }
@@ -224,6 +233,17 @@ int main( int argc, char** argv )
     IplImage* eigen_array[eigen_dimensions];
     for(int ii = 0; ii < eigen_dimensions; ii++) {
         eigen_array[ii] = eigen_images[ii+1];
+    }
+
+    // Also save eigenvectors as one huge image:
+    // e.g., a 10000x15 single image
+    int num_pixels = images[0]->height * images[0]->width;
+    CvMat* stacked_eigen_vectors = cvCreateMat(eigen_dimensions, num_pixels, CV_32F);
+    for (int ii = 0; ii < num_pixels; ii++) {
+        for (int jj = 0; jj < eigen_dimensions; jj++) {
+            CV_MAT_ELEM(*stacked_eigen_vectors, float, jj, ii) = \
+                CV_IMAGE_ELEM(eigen_array[jj], float, 0, ii);
+        }
     }
 
     //cv::Mat features(images.size(), eigen_dimensions, CV_32F);
@@ -318,7 +338,22 @@ int main( int argc, char** argv )
         CvMat* weight = cvCreateMat(1, eigen_dimensions, CV_32F);
         cvMatMul(mean01, covs_inv, weight);
 
-        // 9. compute fisher scores for u_0 and u_1
+        // 9. reproject and save mean class0 and class1 images
+        CvMat * tmp_mat = cvCreateMat(1, num_pixels, CV_32F);
+
+        cvMatMul(mean0, stacked_eigen_vectors, tmp_mat);
+        sprintf(tmp_buf, "class_%02d_%d.jpg", cc, 0);
+        reshapeAndSave(tmp_buf, tmp_mat, cvGetSize(images[0]));
+
+        cvMatMul(mean1, stacked_eigen_vectors, tmp_mat);
+        sprintf(tmp_buf, "class_%02d_%d.jpg", cc, 1);
+        reshapeAndSave(tmp_buf, tmp_mat, cvGetSize(images[0]));
+
+        cvMatMul(weight, stacked_eigen_vectors, tmp_mat);
+        sprintf(tmp_buf, "class_%02d_%s.jpg", cc, "w");
+        reshapeAndSave(tmp_buf, tmp_mat, cvGetSize(images[0]));
+
+        // 10. compute fisher scores for u_0 and u_1
         scores_mean0.push_back(cvDotProduct(weight, mean0));
         scores_mean1.push_back(cvDotProduct(weight, mean1));
 
@@ -421,6 +456,11 @@ imageInfo (IplImage * image)
     cout << "    BorderMode[4]:  " << image->BorderMode[4]  << endl;
     cout << "    BorderConst[4]: " << image->BorderConst[4] << endl;
 
+    cout << sizeof(float) << endl;
+    assert(image->depth == sizeof(char)*8 || image->depth == sizeof(float)*8);
+
+    bool fl = (image->depth == sizeof(float)*8);
+
     int ii, jj, cc;
     int nChannels = image->nChannels;
     
@@ -431,7 +471,10 @@ imageInfo (IplImage * image)
             cout << ii << "," << jj << " " << "(";
             for (cc = 0; cc < nChannels; ++cc) {
                 //printf("%.2f", CV_IMAGE_ELEM(image, float, ii, jj*nChannels+cc));
-                printf("%d", CV_IMAGE_ELEM(image, char, ii, jj*nChannels+cc));
+                if (fl)
+                    printf("%d", CV_IMAGE_ELEM(image, float, ii, jj*nChannels+cc));
+                else
+                    printf("%d", CV_IMAGE_ELEM(image, char, ii, jj*nChannels+cc));
             }
             cout << ") ";
         }
@@ -446,7 +489,8 @@ void saveImage(char * file, int line, char * name, IplImage * image)
     sprintf (buffer, "line_%03d_%s.png", line, name);
 
     IplImage* temp = cvCloneImage(image);
-    cvConvertScale(image, temp, 255, 0);
+    //cvConvertScale(image, temp, 255, 0);
+    autoScaleImage(image, temp, 0, 255);
     cvSaveImage(buffer, temp);
     cvReleaseImage(&temp);
 }
@@ -475,4 +519,67 @@ matInfo (CvMat * mat)
         }
         cout <<  " ]" << endl;
     }
+}
+
+// scale image to be from min_goal to max_goal
+void autoScaleMat (CvMat* in, CvMat* out, float min_goal, float max_goal)
+{
+    float min_val = 1e100, max_val = -1e100;
+    for (int ii = 0; ii < in->rows; ii++) {
+        for (int jj = 0; jj < in->cols; jj++) {
+            min_val = min(min_val, CV_MAT_ELEM(*in, float, ii, jj));
+            max_val = max(max_val, CV_MAT_ELEM(*in, float, ii, jj));
+        }
+    }
+
+    float scale = max_val == min_val ? 1.0 : 1.0 / (max_val - min_val);
+    cvConvertScale(in, out, scale, -min_val);
+}
+
+// scale image to be from min_goal to max_goal
+void autoScaleImage (IplImage* in, IplImage* out, float min_goal, float max_goal)
+{
+    float min_val = 1e100, max_val = -1e100;
+    for (int ii = 0; ii < in->height; ii++) {
+        for (int jj = 0; jj < in->width; jj++) {
+            min_val = min(min_val, CV_IMAGE_ELEM(in, float, ii, jj));
+            max_val = max(max_val, CV_IMAGE_ELEM(in, float, ii, jj));
+        }
+    }
+
+    float scale = max_val == min_val ? 1.0 : (max_goal - min_goal) / (max_val - min_val);
+    float shift = (min_goal - min_val) * scale;
+    //printf("min: %f, max: %f, scale: %f, shift: %f\n", min_val, max_val, scale, shift);
+    cvConvertScale(in, out, scale, shift);
+}
+
+void matToImg(const CvMat * in, IplImage * out)
+{
+    assert(in->rows == out->height);
+    assert(in->cols == out->width);
+    for (int ii = 0; ii < out->height; ii++) {
+        for (int jj = 0; jj < out->width; jj++) {
+            //printf("elem  is %f\n", CV_MAT_ELEM(*in, float, ii, jj));
+            CV_IMAGE_ELEM(out, float, ii, jj) = CV_MAT_ELEM(*in, float, ii, jj);
+            //printf("  now is %f\n", CV_IMAGE_ELEM(out, float, ii, jj));
+        }
+    }
+}
+
+
+
+void reshapeAndSave(const char* filename, const CvMat* mat, CvSize destination_size)
+{
+    CvMat fat_header, *fat;
+    fat = cvReshape(mat, &fat_header, 0, destination_size.height);
+
+    IplImage* fooF = cvCreateImage(destination_size, IPL_DEPTH_32F, 1);
+    matToImg(fat, fooF);
+
+    IplImage* fooC = cvCreateImage(destination_size, IPL_DEPTH_8U, 1);
+    autoScaleImage(fooF, fooC, 0, 255);
+
+    cvSaveImage(filename, fooC);
+    cvReleaseImage(&fooC);
+    cvReleaseImage(&fooF);
 }

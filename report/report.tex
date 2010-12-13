@@ -38,3 +38,17 @@ Some results using our Haar wavelet detector are shown in
 
 \figvarp{three_faces.jpg}{.60}{Detection of multiple faces at different
   scales in a single image works well.}{}
+
+
+
+\section{Fisher Faces}
+
+Equations from wikipedia:
+
+\begin{equation}
+S=\frac{\sigma_{between}^2}{\sigma_{within}^2}= \frac{(\vec w \cdot \vec \mu_{y=1} - \vec w \cdot \vec \mu_{y=0})^2}{\vec w^T \Sigma_{y=1} \vec w + \vec w^T \Sigma_{y=0} \vec w} = \frac{(\vec w \cdot (\vec \mu_{y=1} - \vec \mu_{y=0}))^2}{\vec w^T (\Sigma_{y=0}+\Sigma_{y=1}) \vec w}
+\end{equation}
+
+\begin{equation}
+\vec w = (\Sigma_{y=0}+\Sigma_{y=1})^{-1}(\vec \mu_{y=1} - \vec \mu_{y=0})
+\end{equation}
