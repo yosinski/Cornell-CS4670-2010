@@ -1,0 +1,8 @@
+#! /bin/sh
+
+# converts three class images into one big image
+
+for ii in `seq -w 0 14`; do
+    convert +append class_${ii}_0.jpg class_${ii}_1.jpg class_${ii}_w.jpg class_${ii}_all.jpg
+    echo "Made class_${ii}_all.jpg"
+done
