@@ -2,6 +2,7 @@
 #define FACE_H
 
 #include "opencv/highgui.h"
+#include <string.h>
 
 class Face
 {
@@ -10,7 +11,7 @@ class Face
     ~Face();
     CvRect location;
     IplImage* image;
-    char* label;
+    std::string label;
 };
 
 #endif
