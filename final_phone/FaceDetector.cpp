@@ -1,4 +1,5 @@
 #include "FaceDetector.h"
+#include <stdio.h>
 
 FaceDetector::FaceDetector() 
 {
@@ -17,27 +18,32 @@ void FaceDetector::processImage(IplImage* img)
   //TODO Put Processing Code Here.  Replace input image with result.
   
   //Convert incoming image to format useable by our code:
-  IplImage* img2 = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, img->nChannels);
   IplImage* imgbgr = cvCreateImage(cvGetSize(img), IPL_DEPTH_32F, img->nChannels);
   cvCvtColor (img, imgbgr, CV_YCrCb2BGR);
-  cvConvertImage(imgbgr, img2);
+  IplImage* img2 = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, img->nChannels);
+  cvConvertImage(imgbgr, img2); //scale
   
-  //Find Faces
-  cvClearMemStorage( haarstorage );
-  std::vector<Face*> faces = findFaces(img2);
-  
-  //Find label and Mark Faces
-  for(uint i = 0; i < faces.size(); i++)
-  {
-    faces[i]->label = fisherFace->labelFace(faces[i]->image);
-    markAndLabel(img2, &(faces[i]->location), faces[i]->label);
-  }
+  processImage2(img2); //do stuff
   
   //Convert back to original format
   cvConvertScale(img2, imgbgr, 1.0/255.0);
   cvCvtColor (imgbgr, img, CV_BGR2YCrCb);
   cvReleaseImage(&img2);
   cvReleaseImage(&imgbgr);
+}
+
+void FaceDetector::processImage2(IplImage* img)
+{
+  //Find Faces
+  cvClearMemStorage( haarstorage );
+  std::vector<Face*> faces = findFaces(img);
+  
+  //Find label and Mark Faces
+  for(uint i = 0; i < faces.size(); i++)
+  {
+    faces[i]->label = fisherFace->labelFace(faces[i]->image);
+    markAndLabel(img, &(faces[i]->location), faces[i]->label);
+  }
 }
 
 //finds all faces in img, and returns vector of face objects,

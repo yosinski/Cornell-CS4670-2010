@@ -13,6 +13,7 @@ class FaceDetector
     FaceDetector();
     ~FaceDetector() {}
     void processImage(IplImage* img);
+    void processImage2(IplImage* img);
     
   private:
     Fisher* fisherFace;

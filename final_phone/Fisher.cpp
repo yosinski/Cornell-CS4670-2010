@@ -16,7 +16,7 @@ using namespace std;
 
 Fisher::Fisher()
 {
-  int max_eigen_dimensions = 24;
+  int max_eigen_dimensions = 6;
   float epsilon = 1.0;  
   
   /******************************
