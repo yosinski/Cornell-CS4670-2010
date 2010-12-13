@@ -8,6 +8,7 @@ FaceDetector::FaceDetector()
   if(!cascade)
     printf("***ERROR: Failed to load Haar Cascade!\n");
   haarstorage = cvCreateMemStorage(0);
+  fisherFace = new Fisher();
 }
 
 void FaceDetector::processImage(IplImage* img)
@@ -28,7 +29,7 @@ void FaceDetector::processImage(IplImage* img)
   //Find label and Mark Faces
   for(uint i = 0; i < faces.size(); i++)
   {
-    faces[i]->label = findLabel(faces[i]->image);
+    faces[i]->label = fisherFace->labelFace(faces[i]->image);
     markAndLabel(img2, &(faces[i]->location), faces[i]->label);
   }
   
@@ -37,13 +38,6 @@ void FaceDetector::processImage(IplImage* img)
   cvCvtColor (imgbgr, img, CV_BGR2YCrCb);
   cvReleaseImage(&img2);
   cvReleaseImage(&imgbgr);
-}
-
-//Takes in a normalized face and returns class label
-char* FaceDetector::findLabel(IplImage* face)
-{
-  //TODO Add fisher face code here
-  return "YOYO!";
 }
 
 //finds all faces in img, and returns vector of face objects,
@@ -79,7 +73,7 @@ std::vector<Face*> FaceDetector::findFaces(IplImage* img)
 }
 
 //Modifies input image by marking the passed rectange and labeling it with label
-void FaceDetector::markAndLabel(IplImage* img, CvRect *square, char* label)
+void FaceDetector::markAndLabel(IplImage* img, CvRect *square, std::string label)
 {
   cvRectangle(img, 
 	      cvPoint(square->x, square->y), 
@@ -92,7 +86,7 @@ void FaceDetector::markAndLabel(IplImage* img, CvRect *square, char* label)
   int    lineWidth=1;
   cvInitFont(&font,CV_FONT_HERSHEY_TRIPLEX|CV_FONT_ITALIC, hScale,vScale,0,lineWidth);
   cvPutText(img,
-      	    label,
+      	    label.c_str(),
       	    cvPoint(square->x, square->y + square->height),
       	    &font,
       	    CV_RGB(255,255,255));
