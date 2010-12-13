@@ -1,0 +1,10 @@
+#! /bin/sh
+
+find database/Cooper/ | egrep 'png|jpg' > database/Cooper/Cooper_Bills
+find database/Jason/  | egrep 'png|jpg' > database/Jason/Jason_Yosinski
+find database/Kevin/  | egrep 'png|jpg' > database/Kevin/Kevin_Matzen
+find database/Noah/   | egrep 'png|jpg' > database/Noah/Noah_Snavely
+find database/Rohan/  | egrep 'png|jpg' > database/Rohan/Rohan_Sharma
+find database/Saurav/ | egrep 'png|jpg' > database/Saurav/Saurav_Kumar
+
+find database/ | grep _ | egrep -v 'png|jpg' > demo_classes.txt
