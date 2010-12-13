@@ -206,7 +206,7 @@ Fisher::Fisher()
 
         // Here we copy features into two separate matrices, one for each class
         CvMat* features_class0 = cvCreateMat(size_class0, eigen_dimensions, CV_32F);
-        CvMat* features_class1 = cvCreateMat(size_class0, eigen_dimensions, CV_32F);
+        CvMat* features_class1 = cvCreateMat(size_class1, eigen_dimensions, CV_32F);
         for (int ii = 0; ii < size_class0; ii++)
             for (int jj = 0; jj < eigen_dimensions; jj++)
                 CV_MAT_ELEM(*features_class0, float, ii, jj) = CV_MAT_ELEM(*features, float, idx_class0[ii], jj);
