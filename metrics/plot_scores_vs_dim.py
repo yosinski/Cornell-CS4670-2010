@@ -37,6 +37,10 @@ def main():
     #figure()
     #plot(scores.T)
     figure()
+
+    #dims = dims[:25]
+    #differences = differences[:25]
+    
     plot(dims, differences)
     plot(array([min(dims), max(dims)]), array([0, 0]), 'k:')
     xlabel('$\mathrm{Number\ of\ eigenvectors}$', fontsize=16)
