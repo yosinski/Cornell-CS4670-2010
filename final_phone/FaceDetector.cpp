@@ -86,15 +86,26 @@ void FaceDetector::markAndLabel(IplImage* img, CvRect *square, std::string label
 	      cvPoint(square->x + square->width, square->y + square->height),
 	      CV_RGB(255,0,0),
 	      2);
-  CvFont font;
+  CvFont font1, font2;
   double hScale=1.0;
   double vScale=1.0;
-  int    lineWidth=1;
-  cvInitFont(&font,CV_FONT_HERSHEY_TRIPLEX|CV_FONT_ITALIC, hScale,vScale,0,lineWidth);
+  cvInitFont(&font1,CV_FONT_HERSHEY_DUPLEX, hScale,vScale,1.0f, //shear
+                                                         1.0f, //thickness
+                                                         CV_AA
+                                                         );
+  cvInitFont(&font2,CV_FONT_HERSHEY_DUPLEX, hScale,vScale,1.0f, //shear
+                                                         2.0f, //thickness
+                                                         CV_AA
+                                                         );
   cvPutText(img,
       	    label.c_str(),
       	    cvPoint(square->x, square->y + square->height),
-      	    &font,
+      	    &font2,
+      	    CV_RGB(0,0,0));  
+  cvPutText(img,
+      	    label.c_str(),
+      	    cvPoint(square->x, square->y + square->height),
+      	    &font1,
       	    CV_RGB(255,255,255));
 }
 

@@ -14,9 +14,37 @@
 
 using namespace std;
 
+/*///////////////////////////
+// Print out matrix information and matrix itself
+void
+matInfo (cv::Mat mat)
+{
+    matInfo((CvMat *) &mat);
+}
+
+// Print out matrix information and matrix itself
+void
+matInfo (CvMat * mat)
+{
+    cout << "Matrix info:" << endl;
+    cout << "    rows:           " << mat->rows             << endl;
+    cout << "    cols:           " << mat->cols             << endl;
+
+    int ii, jj;
+
+    for (ii = 0; ii < mat->rows; ++ii) {
+        cout <<  "[ ";
+        for (jj = 0; jj < mat->cols; ++jj) {
+            cout << CV_MAT_ELEM(*mat, float, ii, jj) << "   ";
+        }
+        cout <<  " ]" << endl;
+    }
+}
+/*////////////////////////////////////
+
 Fisher::Fisher()
 {
-  int max_eigen_dimensions = 6;
+  int max_eigen_dimensions = 18;
   float epsilon = 1.0;  
   
   /******************************
@@ -32,8 +60,12 @@ Fisher::Fisher()
        list of the single class filenames to be processed - one per line */
     num_classes = 0;  // one more than the highest numbered class
     char* subjects_filename = "class_demo.txt";
+    char* labels_filename = "labels.txt";
+    FILE* labels_file = fopen(labels_filename, "rt");
     FILE* class_all_file = fopen( subjects_filename, "rt" );
     char tmp_buf[1000+1];
+    
+      
     if( class_all_file ) {
         char buf[1000+1];
         char buf2[1000+1];
@@ -47,9 +79,12 @@ Fisher::Fisher()
                 len--;
             buf[len] = '\0';
 
-            string class_label(buf);
-            class_labels.push_back(class_label);
-
+            if(!labels_file)
+            {
+              string class_label(buf);
+              class_labels.push_back(class_label);
+            }
+            
             //temp_class_images.clear();
             //temp_labels.clear();
 
@@ -66,7 +101,8 @@ Fisher::Fisher()
 
                     // Load the image from the filename present in the buffer
                     IplImage* image = cvLoadImage( buf2, CV_LOAD_IMAGE_GRAYSCALE );
-
+                    //cvShowImage("result", image);
+                    //  cvWaitKey(0);
                     // If the image was loaded succesfully, then:
                     if( ! image ) {
                         printf("ERROR: Failed to load image: %s\n", buf2);
@@ -96,6 +132,23 @@ Fisher::Fisher()
     } else {
         printf("ERROR: Failure reading class file '%s'!\n", subjects_filename);
     }
+    if(labels_file)
+    {
+        char buf[1000+1];
+        while(fgets( buf, 1000, labels_file ) ) {
+
+            // Remove the spaces if any, and clean up the name
+            int len = (int)strlen(buf);
+            while( len > 0 && isspace(buf[len-1]) )
+                len--;
+            buf[len] = '\0';
+            
+            string class_label(buf);
+            class_labels.push_back(class_label);
+        }
+        fclose(labels_file);
+    }else
+      printf("Could not open %s, default labels used.\n");
 
     // vector< int > class_ids_unique = class_ids;
     // sort(class_ids_unique.begin(), class_ids_unique.end());
@@ -128,7 +181,7 @@ Fisher::Fisher()
         for (int ii = 0; ii < eigen_images.size(); ii++) {
             printf("showing eigen image %d\n", ii);
             //cvConvertScale(eigen_images[ii], eigen_images[ii], 128, 1);
-            cvShowImage("result", eigen_images[ii]);
+            //cvShowImage("result", eigen_images[ii]);
             cout << CV_IMAGE_ELEM(eigen_images[ii], float, 10, 10) << endl;
             cvWaitKey(0);
         }
@@ -206,7 +259,7 @@ Fisher::Fisher()
 
         // Here we copy features into two separate matrices, one for each class
         CvMat* features_class0 = cvCreateMat(size_class0, eigen_dimensions, CV_32F);
-        CvMat* features_class1 = cvCreateMat(size_class0, eigen_dimensions, CV_32F);
+        CvMat* features_class1 = cvCreateMat(size_class1, eigen_dimensions, CV_32F);
         for (int ii = 0; ii < size_class0; ii++)
             for (int jj = 0; jj < eigen_dimensions; jj++)
                 CV_MAT_ELEM(*features_class0, float, ii, jj) = CV_MAT_ELEM(*features, float, idx_class0[ii], jj);
@@ -227,7 +280,8 @@ Fisher::Fisher()
         //cvCalcCovarMatrix((const CvArr**)&features_class1, size_class1, cov1, mean1, CV_COVAR_ROWS);
         cvCalcCovarMatrix((const CvArr**)&features_class0, size_class0, cov0, mean0, CV_COVAR_ROWS | CV_COVAR_NORMAL);
         cvCalcCovarMatrix((const CvArr**)&features_class1, size_class1, cov1, mean1, CV_COVAR_ROWS | CV_COVAR_NORMAL);
-
+        //matInfo(cov0); //ok
+        //matInfo(cov1); //probelm -fixed
 
         // 5. sum + white noise
         CvMat* covs_whitened = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
@@ -237,8 +291,9 @@ Fisher::Fisher()
         
         // 6. inverse
         CvMat* covs_inv = cvCreateMat(eigen_dimensions, eigen_dimensions, CV_32F);
+        //matInfo(covs_whitened);
         cvInvert(covs_whitened, covs_inv);
-
+        //matInfo(covs_inv);
         // 7. subtract means (mean01 = mean1 - mean0)
         CvMat* mean01 = cvCreateMat(1, eigen_dimensions, CV_32F);
         cvAddWeighted(mean0, -1, mean1, 1, 0, mean01);
