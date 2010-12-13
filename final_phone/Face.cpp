@@ -2,6 +2,7 @@
 
 Face::Face(CvRect rect)
 {
+  label = "OMGFace!";
   location = rect;
 }
 

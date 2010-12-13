@@ -17,18 +17,33 @@ void FaceDetector::processImage(IplImage* img)
   
   //Convert incoming image to format useable by our code:
   IplImage* img2 = cvCreateImage(cvGetSize(img), IPL_DEPTH_8U, img->nChannels);
-  cvConvertImage(img, img2);
+  IplImage* imgbgr = cvCreateImage(cvGetSize(img), IPL_DEPTH_32F, img->nChannels);
+  cvCvtColor (img, imgbgr, CV_YCrCb2BGR);
+  cvConvertImage(imgbgr, img2);
   
   //Find Faces
   cvClearMemStorage( haarstorage );
   std::vector<Face*> faces = findFaces(img2);
   
-  //Mark Faces
+  //Find label and Mark Faces
   for(uint i = 0; i < faces.size(); i++)
-    markAndLabel(img2, &(faces[i]->location), "OMGFace!");
-    
-  cvConvertScale(img2, img, 1.0/256.0);
+  {
+    faces[i]->label = findLabel(faces[i]->image);
+    markAndLabel(img2, &(faces[i]->location), faces[i]->label);
+  }
+  
+  //Convert back to original format
+  cvConvertScale(img2, imgbgr, 1.0/255.0);
+  cvCvtColor (imgbgr, img, CV_BGR2YCrCb);
   cvReleaseImage(&img2);
+  cvReleaseImage(&imgbgr);
+}
+
+//Takes in a normalized face and returns class label
+char* FaceDetector::findLabel(IplImage* face)
+{
+  //TODO Add fisher face code here
+  return "YOYO!";
 }
 
 //finds all faces in img, and returns vector of face objects,
