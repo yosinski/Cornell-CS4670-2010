@@ -157,13 +157,14 @@ int main( int argc, char** argv )
     cvWrite(fs, "data", &((CvMat)features), cvAttrList(0,0));
     cvReleaseFileStorage(&fs);
 */
+
     //Save eigenvectors to disk
     CvFileStorage* fs2 = cvOpenFileStorage("eigenvectors.yml", NULL, CV_STORAGE_WRITE);
     cvWrite(fs2, "vector0", avgImage, cvAttrList(0,0));
     char filename[50];
     for(int i = 0; i < min(projection_dims, nn_dimensions+1); i++) {
-      sprintf(filename, "vector%d", i+1);
-      cvWrite(fs2, filename, eigenArray[i], cvAttrList(0,0));
+        sprintf(filename, "vector%d", i+1);
+        cvWrite(fs2, filename, eigenArray[i], cvAttrList(0,0));
     }
     cvReleaseFileStorage(&fs2);
 

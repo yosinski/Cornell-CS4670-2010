@@ -6,6 +6,7 @@ import os
 import pdb
 
 dir = 'yalefaces'
+dir = 'database'
 
 results = os.listdir(dir)
 
