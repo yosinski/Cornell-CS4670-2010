@@ -10,7 +10,7 @@ class Face
     ~Face();
     CvRect location;
     IplImage* image;
-    
+    char* label;
 };
 
 #endif

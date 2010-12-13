@@ -61,7 +61,7 @@ void CameraThread::run() {
       sensor.getFrame();
     }
     overlay->disable();
-    SetBGR();
+    SetYUV();
     overlay->enable();
     mutex.unlock();
 
@@ -133,6 +133,7 @@ void CameraThread::run() {
                 overlay->endProcess ();
                 
                 sensor.stopStreaming();
+                sleep(1);
                 overlay->displayImage(img, render );
                 sensor.start();
                 
