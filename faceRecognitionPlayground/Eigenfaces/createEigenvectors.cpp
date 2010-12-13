@@ -133,7 +133,7 @@ int main( int argc, char** argv )
     //populate flann
     printf("FLANN DIMS: %d, %d\n", images.size(), min(projection_dims, nn_dimensions));
     cv::Mat features ( images.size (), min(projection_dims, nn_dimensions), CV_32F );
-
+/*
     for ( size_t i = 0; i < images.size (); ++i ) {
       float data[projection_dims];
       cvEigenDecomposite(
@@ -156,14 +156,15 @@ int main( int argc, char** argv )
     CvFileStorage* fs = cvOpenFileStorage("nn.yml", NULL, CV_STORAGE_WRITE);
     cvWrite(fs, "data", &((CvMat)features), cvAttrList(0,0));
     cvReleaseFileStorage(&fs);
+*/
 
     //Save eigenvectors to disk
     CvFileStorage* fs2 = cvOpenFileStorage("eigenvectors.yml", NULL, CV_STORAGE_WRITE);
     cvWrite(fs2, "vector0", avgImage, cvAttrList(0,0));
     char filename[50];
-    for(int i = 0; i < projection_dims; i++) {
-      sprintf(filename, "vector%d", i+1);
-      cvWrite(fs2, filename, eigenArray[i], cvAttrList(0,0));
+    for(int i = 0; i < min(projection_dims, nn_dimensions+1); i++) {
+        sprintf(filename, "vector%d", i+1);
+        cvWrite(fs2, filename, eigenArray[i], cvAttrList(0,0));
     }
     cvReleaseFileStorage(&fs2);
 
