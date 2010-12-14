@@ -73,7 +73,70 @@ components, which are described in this section.
 
 \subsection{Fisher Linear Discriminant}
 
-\edit{Jason}
+% HERE
+
+Because using nearest neighbors seemed unable to directly classify
+faces correctly, we decided to use a more discriminative approach,
+namely, the Fisher Linear Discriminant (FLD) \cite{wikiFld}.  FLD
+attempts to find the single dimension along which data can be
+projected to produce maximum \emph{separation}.  The separation $s$
+can be defined as \cite{wikiFld}:
+
+\be
+s = \frac{\sigma_{between}^2}{\sigma_{within}^2}= \frac{(\vec w \cdot \vec \mu_{y=1} - \vec w \cdot \vec \mu_{y=0})^2}{\vec w^T \Sigma_{y=1} \vec w + \vec w^T \Sigma_{y=0} \vec w} = \frac{(\vec w \cdot (\vec \mu_{y=1} - \vec \mu_{y=0}))^2}{\vec w^T (\Sigma_{y=0}+\Sigma_{y=1}) \vec w}
+\ee
+
+\noindent Intuitively, we project all the data onto a vector $\vec w$,
+and then choose $\vec w$ to maximize the distance between the
+projected means divided by the sum of the widths of the projected
+covariances.  Fortunately, the $\vec w$ that maximizes $s$ can be
+calculated in closed form.
+
+\be
+\vec w = (\Sigma_{y=0}+\Sigma_{y=1})^{-1}(\vec \mu_{y=1} - \vec \mu_{y=0})
+\ee
+
+\noindent In reality, we add a normalizing term to ensure that the sum
+of covariance matrices is invertible, so we calculate $\vec w$ as:
+
+\be
+\vec w = (\Sigma_{y=0} + \Sigma_{y=1} + \epsilon I)^{-1}(\vec \mu_{y=1} - \vec \mu_{y=0})
+\eqlabel{w}
+\ee
+
+Finally, Fisher's Linear Discriminant is designed to maximally
+separate only two classes from each other.  To work around this
+limitation, we train $k$ separate one-vs-all classifiers for each of
+the $k$ subjects in our database.  To classify a new test image using
+the database, we compute a score for each class and then choose the
+class with the highest score.  The score we chose is the following
+ratio:
+
+\be
+r^{(i)} = \frac{s_{test}^{(i)} - s_{\mu_0}^{(i)}}{s_{\mu_1}^{(i)} - s_{\mu_0}^{(i)}}
+\ee
+
+
+\noindent where $s_{\vec x}^{(i)}$ is the projection of $\vec x$ onto $\vec w$:
+
+\be
+s_{\vec x}^{(i)} = \vec w \cdot \vec x
+\ee
+
+We could compute the FLD on the raw images, but given our 100 x 100
+images we would have to invert a 10,000 by 10,000 dimensional
+covariance matrix from \eqref{w} above, which would be both
+prohibitively expensive and unnecessary.  Alternately, we can use PCA
+to reduce the dimensionality first, and compute $\vec w$ in this space
+instead.  This is the approach we ended up using.
+
+To tune the number of eigenvectors used, we compared the performance
+using different numbers of eigenvectors on classifying all the
+``happy'' faces of the Yale data set.  Results are shown in
+\figref{scores_vs_dim}...
+
+\figvarp{scores_vs_dim}{.85}{Caption???}{}
+
 
 
 
@@ -154,19 +217,3 @@ Some results using our Haar wavelet detector are shown in
 
 Equations from wikipedia:
 
-\begin{equation}
-S=\frac{\sigma_{between}^2}{\sigma_{within}^2}= \frac{(\vec w \cdot \vec \mu_{y=1} - \vec w \cdot \vec \mu_{y=0})^2}{\vec w^T \Sigma_{y=1} \vec w + \vec w^T \Sigma_{y=0} \vec w} = \frac{(\vec w \cdot (\vec \mu_{y=1} - \vec \mu_{y=0}))^2}{\vec w^T (\Sigma_{y=0}+\Sigma_{y=1}) \vec w}
-\end{equation}
-
-\begin{equation}
-\vec w = (\Sigma_{y=0}+\Sigma_{y=1})^{-1}(\vec \mu_{y=1} - \vec \mu_{y=0})
-\end{equation}
-
-\begin{equation}
-\vec w = (\Sigma_{y=0} + \Sigma_{y=1} + \epsilon I)^{-1}(\vec \mu_{y=1} - \vec \mu_{y=0})
-\end{equation}
-
-
-\begin{equation}
-s_{ratio} = \frac{s_{test} - s_{\mu_0}}{s_{\mu_1} - s_{\mu_0}}
-\end{equation}
