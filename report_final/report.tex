@@ -14,8 +14,8 @@ local database with the goal to find and identify faces in an mobile
 image.  This database is created on a desktop computer and copied to
 the phone before the application is used.  Our testing utilized two
 databases: The Yale Face Database\footnote{Available here:
-  http://cvc.yale.edu/projects/yalefaces/yalefaces.html}\cite{YaleFace}
-and our own custom database from facebook images.
+  \url{http://cvc.yale.edu/projects/yalefaces/yalefaces.html}}
+\cite{YaleFace} and our own custom database from facebook images.
 
 \section{Related Work} % related work, with references to papers, web pages
 
@@ -39,8 +39,6 @@ Fisherfaces. \cite{Fisherfaces} Newer facial recognition systems use
 3D models\cite{3d}, and were considered for this project, but were
 ruled out because the phone has limited computational ability.
 
-\edit{Cooper: copy our references slide}
-
 \section{Approach} % technical description including algorithm
 
 Similar projects to ours have been conducted, such as the Introduction
@@ -49,26 +47,70 @@ Our project was based on this outline in the beginning, and has grown
 to include other methods and abilities.  Our project consisted of many
 components, which are described in this section.
 
-
-\edit{Cooper: intro do approach}
-
 \subsection{Detection}
 
+The first objective of this project is to idetify human faces in an
+image.  Our approach was to utilize Lienhart's implementation
+\cite{Lienhart} of Haar Cascades, which has already been implemented
+in Intel's OpenCV library. \cite{opencv} We utilized a pretrained
+cascade in the OpenCV library, which obtained acceptable accuracy and
+was used in this project.
 
+\subsection{Preprocessing}\label{preprocess}
 
-\subsection{Preprocessing}
+Facial recognition, especially Eigenfaces, is very dependent on
+positioning and lighting within an image.  We created a simple program
+to preprocess our images for us.  It utilizes our detection algorithm
+to crop the image, then it resizes the face to 100x100, then finally
+converts it to grayscale and equalizes the image.  Utilizing the
+detection algorithm to crop aligns the faces nearly perfectly, and
+equalizing the grayscale image creates an even brightness and contrast
+across all faces. These two steps are shown in
+\figref{preprocess.png}.
 
-\edit{Cooper, aka face detection, resizing, grayscale..} 
+\figvarp{preprocess.png}{.60}{Steps in our preprocessing process.}{}
+
+This preprocess is also applied to every face found while running on
+the phone.
 
 \subsubsection{Database Generation}
+
+We utilized two databases in this project: The Yale Face Database
+\cite{Yaleface} (15 subjects, 165 images) and a database we created
+from facebook of our friends (6 subjects, 70 images).  All faces are
+preprocessed using the process described in \ref{preprocess}.  The
+Yale database was used mostly for testing, and our database was used
+in application.
+
+Our application uses these images at run-time to generate the Fisher
+Linear Discriminant models.
+
 \subsubsection{Eigenvector Generation}
 
+One of the two databases described above is loaded, and the
+eigenvectors of the training data are generated using PCA, similar to
+\cite{Eigenfaces}.  This is done beforehand, and the eigenvectors are
+stored for use at application run-time.
 
+Also, all images in the database are decomposed into the eigenvector
+space, and their vectors saved to disk for nearest neighbor
+calculation:
 
 \subsection{Eigenvector Nearest Neighbor}
 
-\edit{Cooper}
+After a face has been preprocessed, we can identify it using the
+Eigenfaces method.  This is done by projecting the face into the
+eigenvector space (100x100 matrix to 1x(# of eigenvectors) vector).
+Nearest neighbors is then conducted on this new vector, comparing it
+to all images in the original database (their vectors are pre-calculated).
 
+However, during testing of the Yale database, we decided to see what
+would happen if one of our faces were compared (we were not in the
+database).  We assumed that it would pick out the neighbors that
+looked similar to us, but that's not what happened - Instead, the 10
+closest neighbors were all of different subjects with similar
+lighting.  This was a red flag for us, and we improved our program by
+using Fisherfaces instead:
 
 \subsection{Fisher Linear Discriminant}
 
@@ -141,12 +183,38 @@ using different numbers of eigenvectors on classifying all the
 
 \subsection{Computation Considerations for Mobiles Devices}
 
-\edit{Cooper}
+\edit{Cooper} 
 
-\subsubsection{Load-Time}
+Mobile platforms are limited in both computational power
+and memory space.  Throughout this project, this was a consideration in what algorithms to use, and how our code is implemented.  To keep our application on the phone as responsive as possible, we broke op our application into three parts:
+
+\subsubsection{Preprocessing}
+
+We did as much computation as we could off the phone, such as
+preprocessing images, generating the database, and calculating
+eigenvectors.  These results were saved to files and transferred to
+the phone with the application, which were loaded at run-time.
+
+\subsubsection{Run-Time}
+
+When the application is run it loads the database and other data files
+we have already created.  The application then uses this to calculate
+the Fisher discriminative features.  This causes our application to
+take about 5 seconds to load, which is a reasonable amount of time.
+
 \subsubsection{Picture}
 
+Finally, more calculation is done on-board the phone when a picture is
+taken.  First, it applies the Haar cascades to find the faces, then it
+applies the preprocessing as described before. It then applies our
+Fisherfaces algorithm to label the incoming face.  Finally, it paints
+a square and the label onto the image, displays it on the phone, and
+saves it to the phone.  All this takes about 3 seconds, which is
+completely reasonable for phone-based calculations.
 
+The Haar cascades take the longest, and originally took around 10
+seconds.  The time was cut by considering less scales while applying
+the cascade.
 
 \section{Results} % experimental results
 
@@ -173,7 +241,7 @@ Some results using our Haar wavelet detector are shown in
 
 \subsection{Eigenvector Nearest Neighbor results on Yale Data set}
 
-\edit{Cooper}
+\edit{Jason: Cooper is out of time}
 
 \subsection{Fisher results on Yale Data set}
 
@@ -193,18 +261,15 @@ Some results using our Haar wavelet detector are shown in
 
 \edit{Jason}
 
+Link with facebook.
+add ability to realize face isnt in database.
 
 \section{Conclusion}
 
-\edit{Cooper}
+\edit{Jason: can you add a few sentences as summation?}
 
-
-
-
-
-
-
-
+We successfully created a working application that was able to find
+and identify faces on a mobile platform.
 
 
 \section{Results}
