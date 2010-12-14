@@ -1,52 +1,56 @@
-%\section{N/A} % title, team members
 \section{Introduction} % short intro
+
+\edit{Cooper}
+
+
+
 \section{Related Work} % related work, with references to papers, web pages
+
+We used some data from Yale \cite{GeBeKr01}...
+
+\edit{Cooper: copy our references slide}
+
+
+
 \section{Approach} % technical description including algorithm
+
+\edit{Cooper: intro do approach}
+
+\subsection{Detection}
+
 \subsection{Preprocessing}
+
+\edit{Cooper, aka face detection, resizing, grayscale..} 
+
 \subsubsection{Database Generation}
 \subsubsection{Eigenvector Generation}
-\subsection{Onboard Computation}
+
+
+
+\subsection{Eigenvector Nearest Neighbor}
+
+\edit{Cooper}
+
+
+\subsection{Fisher Linear Discriminant}
+
+\edit{Jason}
+
+
+
+\subsection{Computation Considerations for Mobiles Devices}
+
+\edit{Cooper}
+
 \subsubsection{Load-Time}
-Fisher Faces
 \subsubsection{Picture}
+
+
+
 \section{Results} % experimental results
-\section{Discussion} % discussion of results, strengths/weaknesses, what worked, what didn't
-\section{Future Work} % future work and what you would do if you had more time
-\section{Conclusion}
 
+\subsection{Face Detection}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Midterm report below here (old work):
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section{Progress}
-
-Our tasks and our progress on each are shown below.
-
-\newcommand{\prog}[1]{\textit{\\
-#1}}
-
-\begin{enumerate}
-\item Set up a server for collaboration and running required
-  server-side code.  \prog{Done. We set up a server and are using Trac
-    and Git for
-    collaboration\footnote{\code{http://cs4670.yosinski.com/}}.  We're
-    currently running the vision code locally, but will transition
-    parts of it to the server as the need arises.}
-\item Code and demonstrate basic face detection.  \prog{Done.  We have
-  implemented basic face detection using a Haar wavelet detector from
-  OpenCV; see Results section.}
-\item Code and demonstrate basic facial feature extraction.
-  \prog{Investigated options, coding not yet started.}
-\item Integrate detection and description code. \prog{Not started.}
-\item Match detected features to database of features. \prog{Not started.}
-\item Compile for phone image capture and processing.  \prog{Not started.}
-\item Bonus: build database using Facebook images.  \prog{Not started.}
-\end{enumerate}
-
-
-
-\section{Results}
 
 Some results using our Haar wavelet detector are shown in
 \figref{small_face.jpg} through \figref{three_faces.jpg}.
@@ -59,6 +63,51 @@ Some results using our Haar wavelet detector are shown in
 
 \figvarp{three_faces.jpg}{.60}{Detection of multiple faces at different
   scales in a single image works well.}{}
+
+\edit{clean this up...}
+
+\subsection{Eigenvector creation}
+
+\edit{pull from slide}
+
+\subsection{Eigenvector Nearest Neighbor results on Yale Data set}
+
+\edit{Cooper}
+
+\subsection{Fisher results on Yale Data set}
+
+\edit{Jason}
+
+\subsection{Fisher results on phone/computer images}
+
+\edit{Jason}
+
+
+\section{Discussion} % discussion of results, strengths/weaknesses, what worked, what didn't
+
+\edit{Jason}
+
+
+\section{Future Work} % future work and what you would do if you had more time
+
+\edit{Jason}
+
+
+\section{Conclusion}
+
+\edit{Cooper}
+
+
+
+
+
+
+
+
+
+
+\section{Results}
+
 
 
 
@@ -82,19 +131,3 @@ S=\frac{\sigma_{between}^2}{\sigma_{within}^2}= \frac{(\vec w \cdot \vec \mu_{y=
 \begin{equation}
 s_{ratio} = \frac{s_{test} - s_{\mu_0}}{s_{\mu_1} - s_{\mu_0}}
 \end{equation}
-
-
-
-%Possible reference for Yale database:
-% @Article{GeBeKr01,
-%  author =  ``Georghiades, A.S. and Belhumeur, P.N. and Kriegman, D.J.'',
-%  title =   ``From Few to Many: Illumination Cone Models for Face Recognition under
-%               Variable Lighting and Pose'',
-%  journal = ``IEEE Trans. Pattern Anal. Mach. Intelligence'',
-%  year =  2001,
-%  volume = 23,
-%  number = 6,
-%  pages= ``643-660''}
-% 
-% 
-  
