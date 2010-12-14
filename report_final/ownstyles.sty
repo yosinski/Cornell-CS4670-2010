@@ -1,14 +1,23 @@
 % Short commands
 \newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+\newcommand{\andd}{\wedge}
+\newcommand{\orr}{\vee}
 \def\naive{na\"{\i}ve}
 \def\Naive{Na\"{\i}ve}
 \def\naively{na\"{\i}vely}
 \def\Naively{Na\"{\i}vely}
+\newcommand{\ta}{\hspace*{2em}}     % like a tab?
 
 % Refs and labels
 \newcommand{\figref}[1]{Figure~\ref{fig:#1}}
 \newcommand{\seclabel}[1]{\label{sec:#1}}
 \newcommand{\secref}[1]{Section~\ref{sec:#1}}
+\newcommand{\tablabel}[1]{\label{tab:#1}}
+\newcommand{\tabref}[1]{Table~\ref{tab:#1}}
+\newcommand{\tablabel}[1]{\label{eq:#1}}
+\newcommand{\tabref}[1]{Equation~\ref{eq:#1}}
 
 % figgy - Simple centered figure
 \newcommand{\figgy}[2]{
@@ -23,10 +32,8 @@
   \begin{figure}[#1]
   \begin{center}
 
-\vspace*{0.2cm}
   \includegraphics[width=#3\textwidth]{#2}
 
-\vspace*{0.2cm}
   \caption[#5]{#4}
   \label{fig:#2}
   \end{center}
