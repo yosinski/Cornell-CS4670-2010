@@ -4,6 +4,8 @@ all: ${TARGETS}
 
 %.pdf : %.tex
 	pdflatex $*
+	bibtex $*
+	pdflatex $*
 	pdflatex $*
 
 clean:
