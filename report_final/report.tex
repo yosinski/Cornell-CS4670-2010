@@ -17,20 +17,45 @@ databases: The Yale Face Database\footnote{Available here:
   http://cvc.yale.edu/projects/yalefaces/yalefaces.html}\cite{YaleFace}
 and our own custom database from facebook images.
 
-
 \section{Related Work} % related work, with references to papers, web pages
 
-We used some data from Yale \cite{GeBeKr01}...
+Face detection and identification is an active field in computer
+vision, and many methods have been developed.  For face detection, one
+of the most notable is the ``Viola-Jones'' method, published by Paul
+Viola and Michael Jones.\cite{ViolaJones} Their work is based on
+AdaBoost\cite{AdaBoost}, improved by cascading classifiers by
+complexity - improving speed and accuracy.  The algorithm this project
+utilizes for facial detection was developed by Rainer Lienhart and
+Jochen Maydt at Intel labs.\cite{Lienhart} Their algorithm adds
+rotated Harr-like features to improve accuracy.
+
+Face identification (recognition) methods have existed for decades,
+and is continually improving.  One of the oldest methods that has
+stood the test of time is Eigenfaces\cite{Eigenfaces}, developed by
+Matthew Turk and Alex Pentland, which utilizes Principal Component
+Analysis (PCA) for recognition.  This method has been expanded using
+Linear Discriminant Analysis (LDA) to improve accuracy.  This method
+is called. Fisherfaces \cite{Fisherfaces} Newer facial recognition
+systems use 3D models\cite{3d}, and were considered for this project,
+but were ruled out because the phone has limited computational
+ability.
 
 \edit{Cooper: copy our references slide}
 
-
-
 \section{Approach} % technical description including algorithm
+
+Similar projects to ours have been conducted, such as the Introduction
+to Face Detection and Face Recognition by Shervin Emami\cite{Emami}.
+Our project was based on this outline in the beginning, and has grown
+to include other methods and abilities.  Our project consisted of many
+components, which are described in this section.
+
 
 \edit{Cooper: intro do approach}
 
 \subsection{Detection}
+
+
 
 \subsection{Preprocessing}
 
