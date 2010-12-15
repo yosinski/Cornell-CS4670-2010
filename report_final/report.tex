@@ -76,7 +76,7 @@ the phone.
 \subsubsection{Database Generation}
 
 We utilized two databases in this project: The Yale Face Database
-\cite{Yaleface} (15 subjects, 165 images) and a database we created
+\cite{YaleFace} (15 subjects, 165 images) and a database we created
 from facebook of our friends (6 subjects, 70 images).  All faces are
 preprocessed using the process described in \ref{preprocess}.  The
 Yale database was used mostly for testing, and our database was used
@@ -100,7 +100,7 @@ calculation:
 
 After a face has been preprocessed, we can identify it using the
 Eigenfaces method.  This is done by projecting the face into the
-eigenvector space (100x100 matrix to 1x(# of eigenvectors) vector).
+eigenvector space (100x100 matrix to 1x(number of eigenvectors) vector).
 Nearest neighbors is then conducted on this new vector, comparing it
 to all images in the original database (their vectors are pre-calculated).
 
@@ -174,9 +174,15 @@ instead.  This is the approach we ended up using.
 To tune the number of eigenvectors used, we compared the performance
 using different numbers of eigenvectors on classifying all the
 ``happy'' faces of the Yale data set.  Results are shown in
-\figref{scores_vs_dim}.
+\figref{scores_vs_dim}.  From these results, we selected 24
+eigenvectors for all further work.
 
-\figvarp{scores_vs_dim}{.85}{Caption???}{}
+\figvarp{scores_vs_dim}{.85}{Discriminative power versus number of
+  eigenvectors.  Discriminative power is measured as the ratio score
+  for the correct class minus the highest score for any other class.
+  If this quantity is above zero, then the classification was
+  performed correctly.  This analysis helped us settle on using 24
+  eigenvectors for the remaining work.}{}
 
 
 
@@ -245,23 +251,47 @@ Some results using our Haar wavelet detector are shown in
 
 \subsection{Fisher results on Yale Data set}
 
-\edit{Jason}
+On the yale data set \cite{YaleFace}, we achieved 100\% classification
+results for the two sets of faces we tested on: the ``normal'' faces
+as well as the ``happy faces''.  \figref{yale_fisher_faces} shows a
+few of the subjects, along with the out-of-class mean ($\mu+0$), the
+in-class mean ($\mu_1$), and the computed \emph{Fisher face}.  The
+Fisher face is the projection onto visible units of the dimension of
+maximum separability $\vec w$.
+
+\figvarp{yale_fisher_faces}{1}{}{}
+
+
 
 \subsection{Fisher results on phone/computer images}
 
-\edit{Jason}
+In addition to the Yale data set, we also classified correctly a high
+percentage of the pictures taken with the phone.
+\figref{photo_2009.01.02_02.15.26.19} and
+\figref{photo_2009.01.02_02.15.50.58} show a few examples of correctly
+classified images taken with the phone's camera.
+
+\figvarp{photo_2009_01_02_02_15_26_19}{.65}{An example of a correctly
+  classified image, taken during our presentation demo.}{}
+
+\figvarp{photo_2009_01_02_02_15_50_58}{.65}{Another example of
+  correctly recognized faces, in this case, with multiple faces in
+  view.  The many people in the background are not recognized as faces
+  because they fall below a size threshold.}{}
 
 
-\section{Discussion} % discussion of results, strengths/weaknesses, what worked, what didn't
 
-\edit{Jason}
+\section{Discussion and Future Work}
+% discussion of results, strengths/weaknesses, what worked, what didn't
+
+We found that the Fisher face method worked much better than the
+nearest neighbor eigenvector method, even when trained with a
+relatively small data set (10-15 faces per subject).  Of course, this
+method is linear, and as such improvements may be made.  One natural
+extension is to allow nonlinear separation between classes 
 
 
-\section{Future Work} % future work and what you would do if you had more time
-
-\edit{Jason}
-
-Link with facebook.
+We would also like to add the ability to link with Facebook, so that faces may be matched 
 add ability to realize face isnt in database.
 
 \section{Conclusion}
