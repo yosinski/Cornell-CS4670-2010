@@ -1,7 +1,5 @@
 \section{Introduction} % short intro
 
-\edit{Cooper}
-
 Our original proposal was to create a mobile application that will
 identify people in an photo using pictures from facebook, and then
 poll their information and status and display it in the photo.  This
@@ -114,7 +112,7 @@ would happen if one of our faces were compared (we were not in the
 database).  We assumed that it would pick out the neighbors that
 looked similar to us, but that's not what happened --- instead, the 10
 closest neighbors were all of different subjects with similar
-lighting.  This was a red flag for us, and we decided to improvee our
+lighting.  This was a red flag for us, and we decided to improve our
 program by using the Fisher faces method instead.
 
 
@@ -249,15 +247,21 @@ Some results using our Haar wavelet detector are shown in
 \figvarp{three_faces.jpg}{.60}{Detection of multiple faces at
   different scales in a single image works well.}{}
 
-\edit{clean this up...}
-
 \subsection{Eigenvector creation}
 
-\edit{pull from slide}
+Eigenvectors were then created from the whole data set, as shown in
+\figref{eigen_vecs}.  These were used initially for nearest neighbor
+classification, and then as further input for the Fisher's linear
+discriminant model.
 
-\subsection{Eigenvector Nearest Neighbor results on Yale Data set}
+\figvarp{eigen_vecs}{.85}{The first few computed eigenvectors of the
+  images.}{}
 
-\edit{Jason: Cooper is out of time}
+
+
+%\subsection{Eigenvector Nearest Neighbor results on Yale Data set}
+%
+%\edit{Jason: Cooper is out of time}
 
 \subsection{Fisher results on Yale Data set}
 
@@ -269,7 +273,11 @@ in-class mean ($\mu_1$), and the computed \emph{Fisher face}.  The
 Fisher face is the projection onto visible units of the dimension of
 maximum separability $\vec w$.
 
-\figvarp{yale_fisher_faces}{1}{}{}
+\figvarp{yale_fisher_faces}{.85}{On the left are the ``normal'' faces in
+  several of the classes.  Next (horizontally) is the mean of the
+  out-of-class samples, the mean of the in-class samples, and the
+  Fisher face.  The Fisher face is the dimension along which maximum
+  linear separability occurs.}{}
 
 
 
@@ -309,10 +317,10 @@ friends of friends.
 
 \section{Conclusion}
 
-\edit{Jason: can you add a few sentences as summation?}
-
 We successfully created a working application that was able to find
 and identify faces on a mobile platform.  We have showed high
 detection performance using a Haar cascade, and face recognition using
-a combination of Fisher faces and PCA analysis (Eigenfaces).
-
+a combination of Fisher faces and PCA analysis (Eigenfaces).  This
+recognition showed very accurate performance on a standard benchmark,
+the Yale face database, as well as on a custom database assembled from
+users' Facebook images.
