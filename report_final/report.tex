@@ -22,7 +22,7 @@ databases: The Yale Face Database\footnote{Available here:
 Face detection and identification is an active field in computer
 vision, and many methods have been developed.  For face detection, one
 of the most notable is the ``Viola-Jones'' method, published by Paul
-Viola and Michael Jones.\cite{ViolaJones} Their work is based on
+Viola and Michael Jones \cite{ViolaJones}.  Their work is based on
 AdaBoost\cite{AdaBoost}, improved by cascading classifiers by
 complexity - improving speed and accuracy.  The algorithm this project
 utilizes for facial detection was developed by Rainer Lienhart and
@@ -35,21 +35,25 @@ stood the test of time is Eigenfaces\cite{Eigenfaces}, developed by
 Matthew Turk and Alex Pentland, which utilizes Principal Component
 Analysis (PCA) for recognition.  This method has been expanded using
 Linear Discriminant Analysis (LDA) to improve accuracy, known as
-Fisherfaces. \cite{Fisherfaces} Newer facial recognition systems use
+Fisherfaces \cite{Fisherfaces}.  Newer facial recognition systems use
 3D models\cite{3d}, and were considered for this project, but were
 ruled out because the phone has limited computational ability.
+
+
 
 \section{Approach} % technical description including algorithm
 
 Similar projects to ours have been conducted, such as the Introduction
-to Face Detection and Face Recognition by Shervin Emami\cite{Emami}.
+to Face Detection and Face Recognition by Shervin Emami \cite{Emami}.
 Our project was based on this outline in the beginning, and has grown
 to include other methods and abilities.  Our project consisted of many
 components, which are described in this section.
 
+
+
 \subsection{Detection}
 
-The first objective of this project is to idetify human faces in an
+The first objective of this project is to identify human faces in an
 image.  Our approach was to utilize Lienhart's implementation
 \cite{Lienhart} of Haar Cascades, which has already been implemented
 in Intel's OpenCV library. \cite{opencv} We utilized a pretrained
@@ -68,7 +72,7 @@ equalizing the grayscale image creates an even brightness and contrast
 across all faces. These two steps are shown in
 \figref{preprocess.png}.
 
-\figvarp{preprocess.png}{.60}{Steps in our preprocessing process.}{}
+\figvarp{preprocess.png}{1}{Steps in our preprocessing process.}{}
 
 This preprocess is also applied to every face found while running on
 the phone.
@@ -94,27 +98,28 @@ stored for use at application run-time.
 
 Also, all images in the database are decomposed into the eigenvector
 space, and their vectors saved to disk for nearest neighbor
-calculation:
+calculation.
 
 \subsection{Eigenvector Nearest Neighbor}
 
 After a face has been preprocessed, we can identify it using the
 Eigenfaces method.  This is done by projecting the face into the
-eigenvector space (100x100 matrix to 1x(number of eigenvectors) vector).
-Nearest neighbors is then conducted on this new vector, comparing it
-to all images in the original database (their vectors are pre-calculated).
+eigenvector space, or from a 100x100 matrix to a vector whose length
+is the number of eigenvectors.  Nearest neighbors are then conducted
+on this new vector, comparing it to all images in the original
+database (their eigenvectors are pre-calculated for speed).
 
 However, during testing of the Yale database, we decided to see what
 would happen if one of our faces were compared (we were not in the
 database).  We assumed that it would pick out the neighbors that
-looked similar to us, but that's not what happened - Instead, the 10
+looked similar to us, but that's not what happened --- instead, the 10
 closest neighbors were all of different subjects with similar
-lighting.  This was a red flag for us, and we improved our program by
-using Fisherfaces instead:
+lighting.  This was a red flag for us, and we decided to improvee our
+program by using the Fisher faces method instead.
+
+
 
 \subsection{Fisher Linear Discriminant}
-
-% HERE
 
 Because using nearest neighbors seemed unable to directly classify
 faces correctly, we decided to use a more discriminative approach,
@@ -123,8 +128,12 @@ attempts to find the single dimension along which data can be
 projected to produce maximum \emph{separation}.  The separation $s$
 can be defined as \cite{wikiFld}:
 
-\be
-s = \frac{\sigma_{between}^2}{\sigma_{within}^2}= \frac{(\vec w \cdot \vec \mu_{y=1} - \vec w \cdot \vec \mu_{y=0})^2}{\vec w^T \Sigma_{y=1} \vec w + \vec w^T \Sigma_{y=0} \vec w} = \frac{(\vec w \cdot (\vec \mu_{y=1} - \vec \mu_{y=0}))^2}{\vec w^T (\Sigma_{y=0}+\Sigma_{y=1}) \vec w}
+\be 
+s = \frac{\sigma_{between}^2}{\sigma_{within}^2}= \frac{(\vec w
+  \cdot \vec \mu_{y=1} - \vec w \cdot \vec \mu_{y=0})^2}{\vec w^T
+  \Sigma_{y=1} \vec w + \vec w^T \Sigma_{y=0} \vec w} = \frac{(\vec w
+  \cdot (\vec \mu_{y=1} - \vec \mu_{y=0}))^2}{\vec w^T
+  (\Sigma_{y=0}+\Sigma_{y=1}) \vec w}
 \ee
 
 \noindent Intuitively, we project all the data onto a vector $\vec w$,
@@ -186,13 +195,13 @@ eigenvectors for all further work.
 
 
 
-
 \subsection{Computation Considerations for Mobiles Devices}
 
-\edit{Cooper} 
-
-Mobile platforms are limited in both computational power
-and memory space.  Throughout this project, this was a consideration in what algorithms to use, and how our code is implemented.  To keep our application on the phone as responsive as possible, we broke op our application into three parts:
+Mobile platforms are limited in both computational power and memory
+space.  Throughout this project, this was a consideration in what
+algorithms to use, and how our code is implemented.  To keep our
+application on the phone as responsive as possible, we broke op our
+application into three parts:
 
 \subsubsection{Preprocessing}
 
@@ -222,22 +231,23 @@ The Haar cascades take the longest, and originally took around 10
 seconds.  The time was cut by considering less scales while applying
 the cascade.
 
-\section{Results} % experimental results
+
+
+\section{Results}
 
 \subsection{Face Detection}
-
 
 Some results using our Haar wavelet detector are shown in
 \figref{small_face.jpg} through \figref{three_faces.jpg}.
 
-\figvarp{small_face.jpg}{.60}{Haar wavelet detection of a face taking up
-  a small fraction of the image.}{}
+\figvarp{small_face.jpg}{.60}{Haar wavelet detection of a face taking
+  up a small fraction of the image.}{}
 
 \figvarp{small_face_sideways.jpg}{.60}{Our Haar wavelet detector tends
   not to work if the faces are rotated more than 30 degrees.}{}
 
-\figvarp{three_faces.jpg}{.60}{Detection of multiple faces at different
-  scales in a single image works well.}{}
+\figvarp{three_faces.jpg}{.60}{Detection of multiple faces at
+  different scales in a single image works well.}{}
 
 \edit{clean this up...}
 
@@ -288,26 +298,21 @@ We found that the Fisher face method worked much better than the
 nearest neighbor eigenvector method, even when trained with a
 relatively small data set (10-15 faces per subject).  Of course, this
 method is linear, and as such improvements may be made.  One natural
-extension is to allow nonlinear separation between classes 
+extension is to allow nonlinear separation between classes, perhaps
+via a support vector machine (SVM) method or similar.
+
+We would also like to add the ability to link with Facebook, so that
+face database may be populated directly by the user's friends and
+friends of friends.
 
 
-We would also like to add the ability to link with Facebook, so that faces may be matched 
-add ability to realize face isnt in database.
 
 \section{Conclusion}
 
 \edit{Jason: can you add a few sentences as summation?}
 
 We successfully created a working application that was able to find
-and identify faces on a mobile platform.
-
-
-\section{Results}
-
-
-
-
-\section{Fisher Faces}
-
-Equations from wikipedia:
+and identify faces on a mobile platform.  We have showed high
+detection performance using a Haar cascade, and face recognition using
+a combination of Fisher faces and PCA analysis (Eigenfaces).
 
