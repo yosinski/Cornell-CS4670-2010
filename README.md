@@ -9,15 +9,14 @@ Bills](http://www.linkedin.com/pub/cooper-bills/17/363/a51) for
 Project Synopsis
 =================
 
-The project uses OpenCV running on a Nokia N900 to detect faces using
+This project uses OpenCV running on a Nokia N900 to detect faces using
 the built-in camera. Then, from a database of the user's Facebook
 friends (and friends of friends), we match the faces seen by the phone
 to images of people from Facebook, and overlay their name. Other
 information could easily be added.
 
-The idea was that this would allow one to bring this app to a party
-and, upon seeing someone across the room, quickly bring up their name
-and basic info.
+The idea was that one could bring this app to a party and, upon seeing
+someone across the room, quickly bring up their name and basic info.
 
 
 
